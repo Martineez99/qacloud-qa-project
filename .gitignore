@@ -148,6 +148,7 @@ vite.config.ts.timestamp-*
 # Reports (generados automáticamente)
 reports/allure-results/
 reports/allure-report/
+reports/traces/
 
 # Playwright
 test-results/
@@ -155,3 +156,11 @@ playwright-report/
 
 # Build
 dist/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

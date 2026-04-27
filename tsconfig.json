@@ -2,19 +2,24 @@
   "compilerOptions": {
     "target": "ES2022",
     "module": "commonjs",
-    "lib": ["ES2022"],
+    "lib": ["ES2022", "DOM"],
+    "types": ["node"],
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "outDir": "./dist",
+    "rootDir": ".",
     "baseUrl": ".",
+    "ignoreDeprecations": "6.0",
     "paths": {
       "@pages/*": ["src/pages/*"],
       "@utils/*": ["src/utils/*"],
       "@fixtures/*": ["src/fixtures/*"],
-      "@types-app/*": ["src/types/*"]
-    },
-    "outDir": "dist"
+      "@types/*": ["src/types/*"]
+    }
   },
-  "include": ["src/**/*", "config/**/*"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "reports", "config"]
 }

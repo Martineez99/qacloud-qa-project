@@ -34,24 +34,24 @@ Call log:
 
 ```ts
   1  | import { test, expect } from '@playwright/test';
-  2  | 
+  2  |
   3  | test.describe('@smoke — Platform connectivity', () => {
-  4  | 
+  4  |
   5  |   test('qacloud.dev is reachable', async ({ page }) => {
   6  |     const response = await page.goto('/');
   7  |     expect(response?.status()).toBe(200);
   8  |   });
-  9  | 
+  9  |
   10 |   test('Market app loads correctly', async ({ page }) => {
   11 |     await page.goto('/market');
 > 12 |     await expect(page).toHaveTitle(/Market|QA Cloud/i);
      |                        ^ Error: expect(page).toHaveTitle(expected) failed
   13 |   });
-  14 | 
+  14 |
   15 |   test('Hotel app loads correctly', async ({ page }) => {
   16 |     await page.goto('/hotel');
   17 |     await expect(page).toHaveTitle(/Hotel|QA Cloud/i);
   18 |   });
-  19 | 
+  19 |
   20 | });
 ```

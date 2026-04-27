@@ -12,16 +12,19 @@ export default defineConfig({
 
   reporter: [
     ['list'],
-    ['allure-playwright', {
-      detail: true,
-      outputFolder: 'reports/allure-results',
-    }]
+    [
+      'allure-playwright',
+      {
+        detail: true,
+        outputFolder: 'reports/allure-results',
+      },
+    ],
   ],
 
   use: {
     baseURL: process.env.QACLOUD_BASE_URL || 'https://www.qacloud.dev',
     extraHTTPHeaders: {
-      'Authorization': process.env.QACLOUD_API_KEY || '',
+      Authorization: process.env.QACLOUD_API_KEY || '',
       'Content-Type': 'application/json',
     },
   },

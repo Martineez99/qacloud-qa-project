@@ -15,11 +15,14 @@ export default defineConfig({
 
   reporter: [
     ['list'],
-    ['allure-playwright', {
-      detail: true,
-      outputFolder: 'reports/allure-results',
-      suiteTitle: true,
-    }]
+    [
+      'allure-playwright',
+      {
+        detail: true,
+        outputFolder: 'reports/allure-results',
+        suiteTitle: true,
+      },
+    ],
   ],
 
   use: {
@@ -33,6 +36,6 @@ export default defineConfig({
 
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
-    { name: 'firefox',  use: { ...devices['Desktop Firefox'] } },
+    { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
   ],
 });

@@ -15,7 +15,7 @@
 | Documento | Descripción |
 |-----------|-------------|
 | **Este README** | Setup, comandos y guía de contribución |
-| [`QA_PROJECT_ARCHITECTURE.md`](./QA_PROJECT_ARCHITECTURE.md) | Arquitectura completa, estándares, estrategia y roadmap |
+| [`QA_PROJECT_ARCHITECTURE.md`](./docs/QA_PROJECT_ARCHITECTURE.md) | Arquitectura completa, estándares, estrategia y roadmap |
 
 ---
 
@@ -230,7 +230,7 @@ qacloud-qa-project/
 └── reports/          # Generado automáticamente (gitignored)
 ```
 
-> Para la arquitectura completa consulta [`QA_PROJECT_ARCHITECTURE.md`](./QA_PROJECT_ARCHITECTURE.md)
+> Para la arquitectura completa consulta [`QA_PROJECT_ARCHITECTURE.md`](./docs/QA_PROJECT_ARCHITECTURE.md)
 
 ---
 

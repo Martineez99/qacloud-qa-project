@@ -19,8 +19,14 @@ export default defineConfig({
       'allure-playwright',
       {
         detail: true,
-        outputFolder: 'reports/allure-results',
-        suiteTitle: true,
+        resultsDir: path.resolve(__dirname, '../reports/allure-results'), // ← era outputFolder
+        suiteTitle: false,
+        environmentInfo: {
+          App_Version: '1.0.0',
+          Platform: process.platform,
+          Node_Version: process.version,
+          Base_URL: process.env.QACLOUD_BASE_URL || 'https://www.qacloud.dev',
+        },
       },
     ],
   ],

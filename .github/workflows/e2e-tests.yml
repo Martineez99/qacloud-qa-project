@@ -59,8 +59,8 @@ jobs:
 
       # ── 5. EJECUTAR SMOKE TESTS ──────────────────────────────────
       - name: Run smoke tests
-        run: npx playwright test --grep @smoke --reporter=list,allure-playwright
-        continue-on-error: true  # Permite subir artifacts aunque fallen tests
+        run: npx playwright test --config=config/playwright.config.ts --grep @smoke
+        continue-on-error: true
 
       # ── 6. ARTIFACTS — siempre se suben, fallen o pasen ──────────
       - name: Upload Allure results

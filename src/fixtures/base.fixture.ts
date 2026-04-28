@@ -1,30 +1,40 @@
-import { test as base, type Page } from '@playwright/test';
-import { LoginPage } from '@pages/common/LoginPage';
+import { test as base } from '@playwright/test';
+import { LoginPage } from '../pages/common/LoginPage';
+import { NavigationComponent } from '../pages/common/NavigationComponent';
 
-// ── Tipos del fixture ─────────────────────────────────────────────────────
-
+// Definimos qué fixtures exponemos
 type BaseFixtures = {
   loginPage: LoginPage;
-  authenticatedPage: Page;
+  nav: NavigationComponent;
+  authenticatedPage: LoginPage; // LoginPage ya con sesión iniciada
 };
-
-// ── Fixture ───────────────────────────────────────────────────────────────
 
 export const test = base.extend<BaseFixtures>({
 
-  // loginPage: instancia lista para usar, sin autenticación previa
+  // ── Para tests de LOGIN ──────────────────────────────
+  // Llega a la pantalla de login, sin autenticar
   loginPage: async ({ page }, use) => {
     const loginPage = new LoginPage(page);
+    await loginPage.navigate(); // goto('/')
     await use(loginPage);
   },
 
-  // authenticatedPage: page que ya pasó por login
-  // Los tests que lo usan no necesitan hacer login manualmente
-  authenticatedPage: async ({ page }, use) => {
+  // ── Para tests de NAVEGACIÓN ─────────────────────────
+  // Hace login como setup, luego entrega NavigationComponent
+  // apuntando a profile.html (el dashboard)
+  nav: async ({ page }, use) => {
+    // 1. Login
     const loginPage = new LoginPage(page);
-    await loginPage.loginWithEnvCredentials();
-    await use(page);
+    await loginPage.navigate();
+    await loginPage.loginAsDefaultUser();
+    await loginPage.expectLoggedIn(); // espera profile.html
+
+    // 2. Ya autenticado → entregar NavigationComponent
+    const nav = new NavigationComponent(page);
+    await use(nav);
+    // misma instancia de page, misma sesión
   },
 });
 
+// Re-exportamos expect para que los tests solo importen desde aquí
 export { expect } from '@playwright/test';

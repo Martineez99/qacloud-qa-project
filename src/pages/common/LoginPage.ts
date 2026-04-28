@@ -1,44 +1,58 @@
-import { type Page } from '@playwright/test';
+import { Page, expect } from '@playwright/test';
 import { BasePage } from './BasePage';
 
 export class LoginPage extends BasePage {
-  // ── Locators ──────────────────────────────────────────────────────────────
+  // — Locators —
+  get loginRegisterButton() {
+    return this.page.getByRole('button', { name: 'Login / Register' });
+  }
+  get loginButton() {
+    return this.page.getByRole('button', { name: 'Login', exact: true });
+  }
 
   get usernameInput() {
-    return this.page.getByLabel('Username');//##################
+    return this.page.getByRole('textbox', { name: 'Username or Email' });
   }
 
   get passwordInput() {
-    return this.page.getByLabel('Password');//##################
+    return this.page.getByRole('textbox', { name: 'Password' });
   }
 
-  get loginButton() {
-    return this.page.getByRole('button', { name: /login/i });
+  get submitLoginButton() {
+    return this.page.locator('#loginForm').getByRole('button', { name: 'Login' });
   }
 
   get errorMessage() {
-    return this.page.locator('[data-testid="error-message"]');
+    return this.page.getByText('Invalid username or password');
+    
   }
 
-  // ── Actions ───────────────────────────────────────────────────────────────
+  get userMenuOrAvatar() {
+    // Indicador visual de sesión iniciada — ajustar al selector real
+    return this.page.locator('#headerUsername').first();
+  }
 
-  async goto(): Promise<void> {
-    await this.navigate('/login');
+  // — Actions —
+  async navigate(): Promise<void> {
+    await this.page.goto('/');
     await this.waitForPageLoad();
   }
 
   async login(username: string, password: string): Promise<void> {
-    await this.clearAndType(this.usernameInput, username);
-    await this.clearAndType(this.passwordInput, password);
+    await this.loginRegisterButton.click();
     await this.loginButton.click();
-    await this.waitForPageLoad();
+    await this.usernameInput.fill(username);
+    await this.passwordInput.fill(password);
+    await this.submitLoginButton.click();
   }
 
-  async loginWithEnvCredentials(): Promise<void> {
-    await this.goto();
-    await this.login(
-      process.env.QACLOUD_USERNAME ?? '',
-      process.env.QACLOUD_PASSWORD ?? ''
-    );
+  async loginAsDefaultUser(): Promise<void> {
+    const username = process.env.QACLOUD_USERNAME ?? '';
+    const password = process.env.QACLOUD_PASSWORD ?? '';
+    await this.login(username, password);
+  }
+
+  async expectLoggedIn(): Promise<void> {
+    await expect(this.userMenuOrAvatar).toBeVisible({ timeout: 10_000 });
   }
 }

@@ -149,6 +149,8 @@ vite.config.ts.timestamp-*
 reports/allure-results/
 reports/allure-report/
 reports/traces/
+"@
+
 
 # Playwright
 test-results/

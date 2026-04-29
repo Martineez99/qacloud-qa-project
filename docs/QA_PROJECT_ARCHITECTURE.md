@@ -764,7 +764,7 @@ export const options = {
 [✅] Configurar Allure reporter
 [✅] Crear .env.example y scripts PS1
 [✅] Primeros smoke tests (login + navegación)
-[ ] Pipeline CI básico (e2e-tests.yml)
+[✅] Pipeline CI básico (e2e-tests.yml)
 ```
 
 ### Sprint 2 — Market App (Semana 3-4)

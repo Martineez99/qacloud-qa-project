@@ -1,0 +1,78 @@
+# .github/workflows/e2e-tests.yml
+# ─────────────────────────────────────────────────────────────────
+# Pipeline E2E — Sprint 1: Smoke tests básicos
+# Triggers: push a develop + PR hacia develop o main
+# Scope actual: @smoke tests en Chromium
+# Preparado para: matrix strategy (Sprint 2+), Allure Pages (Sprint 4)
+# ─────────────────────────────────────────────────────────────────
+
+name: E2E Tests
+
+on:
+  pull_request:
+    branches:
+      - develop
+      - main
+
+# Evita ejecuciones duplicadas si llega un nuevo push mientras corre una anterior
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e-smoke:
+    name: Smoke Tests — Chromium
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      QACLOUD_BASE_URL: ${{ secrets.QACLOUD_BASE_URL }}
+      QACLOUD_API_KEY: ${{ secrets.QACLOUD_API_KEY }}
+      QACLOUD_USERNAME: ${{ secrets.QACLOUD_USERNAME }}
+      QACLOUD_PASSWORD: ${{ secrets.QACLOUD_PASSWORD }}
+      HEADLESS: true
+      CI: true
+
+    steps:
+      # ── 1. CHECKOUT ──────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── 2. NODE.JS ───────────────────────────────────────────────
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      # ── 3. DEPENDENCIAS ──────────────────────────────────────────
+      - name: Install dependencies
+        run: npm ci
+
+      # ── 4. PLAYWRIGHT BROWSERS ───────────────────────────────────
+      # Solo Chromium en CI para reducir tiempo y uso de disco
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      # ── 5. EJECUTAR SMOKE TESTS ──────────────────────────────────
+      - name: Run smoke tests
+        run: npx playwright test --config=config/playwright.config.ts --grep @smoke --project=chromium
+        continue-on-error: true
+
+      # ── 6. ARTIFACTS — siempre se suben, fallen o pasen ──────────
+      - name: Upload Allure results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results-${{ github.run_number }}
+          path: reports/allure-results/
+          retention-days: 30
+
+      # test-results contiene screenshots, videos y traces en fallos
+      - name: Upload test results (videos y traces en fallos)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ github.run_number }}
+          path: test-results/
+          retention-days: 7

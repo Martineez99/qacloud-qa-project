@@ -141,3 +141,28 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# Environment
+.env
+
+# Reports (generados automáticamente)
+reports/allure-results/
+reports/allure-report/
+reports/traces/
+"@
+allure-results
+
+# Playwright
+test-results/
+playwright-report/
+
+# Build
+dist/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

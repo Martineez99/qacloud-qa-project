@@ -769,8 +769,8 @@ export const options = {
 
 ### Sprint 2 — Market App (Semana 3-4)
 ```
-[ ] Page Objects: MarketPage, BasketPage, OrdersPage
-[ ] E2E tests: Products CRUD flow
+[✅] Page Objects: MarketPage, BasketPage, OrdersPage
+[✅] E2E tests: Products CRUD flow
 [ ] E2E tests: Complete purchase journey
 [ ] API tests: Market CRUD completo
 [ ] API tests: Edge cases (stock validation, empty basket)

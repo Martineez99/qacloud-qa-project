@@ -54,4 +54,8 @@ export class NavigationComponent extends BasePage {
     await expect(this.activePage).not.toHaveURL('/');
     await expect(this.activePage).not.toHaveURL(/error|404|500/);
   }
+
+  getActivePage(): Page {
+    return this.activePage;
+  }
 }

@@ -1,12 +1,15 @@
 import { test as base } from '@playwright/test';
 import { LoginPage } from '../pages/common/LoginPage';
 import { NavigationComponent } from '../pages/common/NavigationComponent';
+import { MarketPage } from '@pages/market/MarketPage';
 
 // Definimos qué fixtures exponemos
 type BaseFixtures = {
   loginPage: LoginPage;
   nav: NavigationComponent;
   authenticatedPage: LoginPage; // LoginPage ya con sesión iniciada
+  marketPage: MarketPage; // 👈 nuevo
+
 };
 
 export const test = base.extend<BaseFixtures>({
@@ -25,6 +28,7 @@ export const test = base.extend<BaseFixtures>({
   nav: async ({ page }, use) => {
     // 1. Login
     const loginPage = new LoginPage(page);
+
     await loginPage.navigate();
     await loginPage.loginAsDefaultUser();
     await loginPage.expectLoggedIn(); // espera profile.html
@@ -33,6 +37,16 @@ export const test = base.extend<BaseFixtures>({
     const nav = new NavigationComponent(page);
     await use(nav);
     // misma instancia de page, misma sesión
+  },
+
+    // ── NUEVO FIXTURE: MARKET YA LISTO ─────────────────
+  marketPage: async ({ page, nav }, use) => {
+    await nav.goToApp('market');
+
+    const marketActivePage = nav.getActivePage();
+    const marketPage = new MarketPage(marketActivePage);
+    
+    await use(marketPage);
   },
 });
 

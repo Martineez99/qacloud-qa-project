@@ -180,9 +180,19 @@ export class BasketPage extends BasePage {
    */
   async incrementItem(productName: string): Promise<void> {
     const item = this.getBasketItemByName(productName);
-    // El botón + es el segundo (índice 1) del quantity-control
+
+    // Registramos ANTES del click para no perder la respuesta
+    const updateResponse = this.page.waitForResponse(
+      response =>
+        response.url().includes('/api/basket') &&
+        response.request().method() === 'PUT' &&
+        response.status() === 200
+    );
+
     await item.locator('.quantity-control button').nth(1).click();
-    await this.waitForBasketToLoad();
+
+    // Esperamos confirmación de la API antes de leer cantidad/subtotal
+    await updateResponse;
   }
 
   /**

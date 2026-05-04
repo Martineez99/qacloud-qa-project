@@ -5,7 +5,7 @@ import path from 'path';
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 export default defineConfig({
-  testDir: '../src/e2e',
+  testDir: '../src',
   timeout: Number(process.env.TEST_TIMEOUT) || 30000,
   expect: { timeout: 5000 },
   fullyParallel: true,
@@ -41,7 +41,43 @@ export default defineConfig({
   },
 
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
-    { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
+    // ── Setups ────────────────────────────────────────────────────────────────
+    {
+      name: 'setup-platform',
+      testMatch: '**/fixtures/platform.setup.ts',
+    },
+    {
+      name: 'setup-market',
+      testMatch: '**/fixtures/auth.setup.ts',
+    },
+
+    // ── Smoke login: SIN sesión — prueban el formulario de login ──────────────
+    {
+      name: 'smoke-login',
+      testMatch: '**/e2e/smoke/login.spec.ts',
+      // Sin storageState ni dependencies — arranca sin sesión
+    },
+
+    // ── Smoke navigation: sesión de plataforma ────────────────────────────────
+    {
+      name: 'smoke-navigation',
+      testMatch: '**/e2e/smoke/navigation.spec.ts',
+      dependencies: ['setup-platform'],
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: '.auth/platform.json',
+      },
+    },
+
+    // ── Market E2E: sesión de Market app ──────────────────────────────────────
+    {
+      name: 'e2e-market',
+      testMatch: '**/e2e/market/**/*.spec.ts',
+      dependencies: ['setup-market'],
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: '.auth/market.json',
+      },
+    },
   ],
 });

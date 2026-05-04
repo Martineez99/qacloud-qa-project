@@ -22,21 +22,16 @@ export const test = base.extend<BaseFixtures>({
 
   // ── Para tests de NAVEGACIÓN ─────────────────────────
   nav: async ({ page }, use) => {
-    const loginPage = new LoginPage(page);
-    await loginPage.navigate();
-    await loginPage.loginAsDefaultUser();
-    await loginPage.expectLoggedIn();
-
+    // La sesión de plataforma viene del storageState — no hay que logarse
     const nav = new NavigationComponent(page);
     await use(nav);
   },
 
   // ── Market: navega a /market.html ────────────────────
-  // MarketPage expone internamente basket y orders como sub-POMs
-  // sobre la misma instancia de Page (market.html es una sola página con tabs).
-  marketPage: async ({ nav }, use) => {
-    await nav.goToApp('market');
-    const marketPage = new MarketPage(nav.getActivePage());
+  marketPage: async ({ page }, use) => {
+    await page.goto('/market.html');
+    await page.waitForLoadState('networkidle');
+    const marketPage = new MarketPage(page);
     await use(marketPage);
   },
 });

@@ -7,48 +7,38 @@ import { MarketPage } from '@pages/market/MarketPage';
 type BaseFixtures = {
   loginPage: LoginPage;
   nav: NavigationComponent;
-  authenticatedPage: LoginPage; // LoginPage ya con sesión iniciada
-  marketPage: MarketPage; // 👈 nuevo
-
+  authenticatedPage: LoginPage;
+  marketPage: MarketPage;
 };
 
 export const test = base.extend<BaseFixtures>({
 
   // ── Para tests de LOGIN ──────────────────────────────
-  // Llega a la pantalla de login, sin autenticar
   loginPage: async ({ page }, use) => {
     const loginPage = new LoginPage(page);
-    await loginPage.navigate(); // goto('/')
+    await loginPage.navigate();
     await use(loginPage);
   },
 
   // ── Para tests de NAVEGACIÓN ─────────────────────────
-  // Hace login como setup, luego entrega NavigationComponent
-  // apuntando a profile.html (el dashboard)
   nav: async ({ page }, use) => {
-    // 1. Login
     const loginPage = new LoginPage(page);
-
     await loginPage.navigate();
     await loginPage.loginAsDefaultUser();
-    await loginPage.expectLoggedIn(); // espera profile.html
+    await loginPage.expectLoggedIn();
 
-    // 2. Ya autenticado → entregar NavigationComponent
     const nav = new NavigationComponent(page);
     await use(nav);
-    // misma instancia de page, misma sesión
   },
 
-    // ── NUEVO FIXTURE: MARKET YA LISTO ─────────────────
-  marketPage: async ({ page, nav }, use) => {
+  // ── Market: navega a /market.html ────────────────────
+  // MarketPage expone internamente basket y orders como sub-POMs
+  // sobre la misma instancia de Page (market.html es una sola página con tabs).
+  marketPage: async ({ nav }, use) => {
     await nav.goToApp('market');
-
-    const marketActivePage = nav.getActivePage();
-    const marketPage = new MarketPage(marketActivePage);
-    
+    const marketPage = new MarketPage(nav.getActivePage());
     await use(marketPage);
   },
 });
 
-// Re-exportamos expect para que los tests solo importen desde aquí
 export { expect } from '@playwright/test';

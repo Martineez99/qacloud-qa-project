@@ -22,7 +22,10 @@ export const test = base.extend<BaseFixtures>({
 
   // ── Para tests de NAVEGACIÓN ─────────────────────────
   nav: async ({ page }, use) => {
-    // La sesión de plataforma viene del storageState — no hay que logarse
+    // La sesión viene del storageState — solo navegamos al dashboard
+    await page.goto('/profile.html');
+    await page.waitForLoadState('networkidle');
+
     const nav = new NavigationComponent(page);
     await use(nav);
   },

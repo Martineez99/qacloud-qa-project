@@ -1,14 +1,6 @@
 name: API Tests — Market
 
 on:
-  push:
-    branches: [develop]
-    paths:
-      - 'src/api/**'
-      - 'src/utils/**'
-      - 'src/types/**'
-      - 'src/fixtures/**'
-      - 'config/playwright.api.config.ts'
   pull_request:
     branches: [develop, main]
     paths:

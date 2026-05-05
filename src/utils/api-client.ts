@@ -140,9 +140,10 @@ export class ApiClient {
    * Retorna el array directamente (ya parseado y tipado).
    */
   async getProducts(): Promise<Product[]> {
-    const response = await this.get<{ products: Product[] }>('/api/groceries');
+    const response = await this.get<Product[] | { products: Product[] }>('/api/groceries');
     if (!response.ok) throw new Error(`getProducts() falló: ${response.status}`);
-    return response.body.products;
+    // La API puede devolver array directo o { products: [...] }
+    return Array.isArray(response.body) ? response.body : response.body.products;
   }
 
   /**
@@ -164,7 +165,7 @@ export class ApiClient {
    * @param quantity   - Cantidad (mínimo 1)
    */
   async addToBasket(productId: string, quantity = 1): Promise<Basket> {
-    const payload: AddToBasketPayload = { productId, quantity };
+    const payload: AddToBasketPayload = { product_id: productId, quantity };
     const response = await this.post<Basket>('/api/basket', { data: payload });
     if (!response.ok) {
       throw new Error(`addToBasket() falló: ${response.status} — ${JSON.stringify(response.body)}`);
@@ -196,9 +197,9 @@ export class ApiClient {
    * Obtiene todas las órdenes del usuario actual.
    */
   async getOrders(): Promise<Order[]> {
-    const response = await this.get<{ orders: Order[] }>('/api/orders');
+    const response = await this.get<Order[] | { orders: Order[] }>('/api/orders');
     if (!response.ok) throw new Error(`getOrders() falló: ${response.status}`);
-    return response.body.orders;
+    return Array.isArray(response.body) ? response.body : response.body.orders;
   }
 
   // ══════════════════════════════════════════════════════════════════

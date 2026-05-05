@@ -79,5 +79,15 @@ export default defineConfig({
         storageState: '.auth/market.json',
       },
     },
+
+    {
+      name: 'api-market',
+      testMatch: '**/api/market/**/*.spec.ts',
+      use: {
+        ...devices['Desktop Chrome'],
+      },
+    },
   ],
+
+  
 });

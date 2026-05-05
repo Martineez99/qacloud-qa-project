@@ -1,0 +1,51 @@
+name: API Tests — Market
+
+on:
+  pull_request:
+    branches: [develop, main]
+    paths:
+      - 'src/api/**'
+      - 'src/utils/**'
+      - 'src/types/**'
+      - 'src/fixtures/**'
+      - 'config/playwright.api.config.ts'
+
+jobs:
+  api-tests:
+    name: Run API Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Market API tests
+        run: npx playwright test src/api/ --config=config/playwright.api.config.ts --reporter=list
+        env:
+          QACLOUD_BASE_URL: ${{ secrets.QACLOUD_BASE_URL }}
+          QACLOUD_API_KEY: ${{ secrets.QACLOUD_API_KEY }}
+
+      - name: Upload Allure results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results-api
+          path: reports/allure-results/
+          retention-days: 7
+
+      - name: Upload test results on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-api
+          path: test-results/
+          retention-days: 7

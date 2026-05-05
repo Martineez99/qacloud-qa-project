@@ -7,7 +7,8 @@ dotenv.config({ path: path.resolve(__dirname, '../.env') });
 export default defineConfig({
   testDir: '../src/api',
   timeout: 15000,
-  fullyParallel: true,
+  fullyParallel: false,
+  workers: 1,
   retries: process.env.CI ? 1 : 0,
 
   reporter: [

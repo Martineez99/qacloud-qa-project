@@ -56,8 +56,7 @@ jobs:
 
       # ── 5. EJECUTAR SMOKE TESTS ──────────────────────────────────
       - name: Run smoke tests
-        run: npx playwright test --config=config/playwright.config.ts --grep @smoke --project=chromium
-        continue-on-error: true
+        run: npx playwright test --config=config/playwright.config.ts --grep @smoke --project=smoke-login --project=smoke-navigation
 
       # ── 6. ARTIFACTS — siempre se suben, fallen o pasen ──────────
       - name: Upload Allure results

@@ -6,10 +6,12 @@
 // └─────────────────────────────────────────────────────────────────┘
 
 import { test, expect } from '../../fixtures/api.fixture';
-import { allure } from 'allure-playwright';
+import { epic, feature, story, severity, tag } from 'allure-js-commons';
 import { Basket, Product } from '../../types/market.types';
 
 test.describe('Market Basket API', () => {
+
+  test.describe.configure({ mode: 'serial' }); // 👈 todos en orden, 1 worker
 
   // Reset + cesta limpia antes de cada test.
   // Aquí usamos beforeEach (no beforeAll) porque cada test de basket
@@ -25,11 +27,13 @@ test.describe('Market Basket API', () => {
   //  TC-BASK-001 — Add product to basket returns 201
   // ════════════════════════════════════════════════════════════════
   test('POST /api/basket adds product and returns 201', async ({ apiClient }) => {
-    await allure.epic('Market App');
-    await allure.feature('Basket Management');
-    await allure.story('Add product to basket');
-    await allure.severity('critical');
-    await allure.tag('smoke', 'market', 'basket');
+    epic('Market App');
+    feature('Basket Management');
+    story('Add product to basket');
+    severity('critical');
+    tag('smoke');
+    tag('market');
+    tag('basket');
 
     const product = await apiClient.getFirstProduct();
 
@@ -51,11 +55,13 @@ test.describe('Market Basket API', () => {
   //  TC-BASK-002 — Adding same product twice MERGES quantities
   // ════════════════════════════════════════════════════════════════
   test('POST /api/basket merges quantities for duplicate product', async ({ apiClient }) => {
-    await allure.epic('Market App');
-    await allure.feature('Basket Management');
-    await allure.story('Basket quantity merge');
-    await allure.severity('critical');
-    await allure.tag('market', 'basket', 'edge');
+    epic('Market App');
+    feature('Basket Management');
+    story('Add product to basket');
+    severity('critical');
+    tag('smoke');
+    tag('market');
+    tag('basket');
 
     // Necesitamos un producto con stock suficiente para qty=5
     const products = await apiClient.getProducts();
@@ -87,11 +93,13 @@ test.describe('Market Basket API', () => {
   //  TC-BASK-003 — Adding more than available stock returns 400
   // ════════════════════════════════════════════════════════════════
   test('POST /api/basket returns 400 when quantity exceeds stock', async ({ apiClient }) => {
-    await allure.epic('Market App');
-    await allure.feature('Basket Management');
-    await allure.story('Stock validation');
-    await allure.severity('critical');
-    await allure.tag('market', 'basket', 'negative');
+    epic('Market App');
+    feature('Basket Management');
+    story('Add product to basket');
+    severity('critical');
+    tag('smoke');
+    tag('market');
+    tag('basket');
 
     // Creamos un producto con stock controlado (stock=5)
     const product = await apiClient.createProduct({
@@ -119,11 +127,13 @@ test.describe('Market Basket API', () => {
   //  TC-BASK-004 — Stock check accounts for items already in basket
   // ════════════════════════════════════════════════════════════════
   test('POST /api/basket 400 considers quantity already in basket', async ({ apiClient }) => {
-    await allure.epic('Market App');
-    await allure.feature('Basket Management');
-    await allure.story('Stock validation with existing basket');
-    await allure.severity('normal');
-    await allure.tag('market', 'basket', 'edge', 'negative');
+    epic('Market App');
+    feature('Basket Management');
+    story('Add product to basket');
+    severity('critical');
+    tag('smoke');
+    tag('market');
+    tag('basket');
 
     // Stock=5, añadimos 3 → quedan 2 disponibles
     const product = await apiClient.createProduct({
@@ -153,11 +163,13 @@ test.describe('Market Basket API', () => {
   //  TC-BASK-005 — quantity=0 returns 400
   // ════════════════════════════════════════════════════════════════
   test('POST /api/basket returns 400 for quantity = 0', async ({ apiClient }) => {
-    await allure.epic('Market App');
-    await allure.feature('Basket Management');
-    await allure.story('Basket input validation');
-    await allure.severity('normal');
-    await allure.tag('market', 'basket', 'negative');
+    epic('Market App');
+    feature('Basket Management');
+    story('Add product to basket');
+    severity('critical');
+    tag('smoke');
+    tag('market');
+    tag('basket');
 
     const product = await apiClient.getFirstProduct();
 
@@ -172,11 +184,13 @@ test.describe('Market Basket API', () => {
   //  quantity=-1 returns 400
   // ════════════════════════════════════════════════════════════════
   test('POST /api/basket returns 400 for negative quantity', async ({ apiClient }) => {
-    await allure.epic('Market App');
-    await allure.feature('Basket Management');
-    await allure.story('Basket input validation');
-    await allure.severity('minor');
-    await allure.tag('market', 'basket', 'negative');
+    epic('Market App');
+    feature('Basket Management');
+    story('Add product to basket');
+    severity('critical');
+    tag('smoke');
+    tag('market');
+    tag('basket');
 
     const product = await apiClient.getFirstProduct();
 
@@ -191,11 +205,13 @@ test.describe('Market Basket API', () => {
   //  TC-BASK-006 — Deleting a product cascades to basket
   // ════════════════════════════════════════════════════════════════
   test('DELETE product cascades and removes it from basket', async ({ apiClient }) => {
-    await allure.epic('Market App');
-    await allure.feature('Basket Management');
-    await allure.story('Basket cascade delete');
-    await allure.severity('normal');
-    await allure.tag('market', 'basket', 'edge');
+    epic('Market App');
+    feature('Basket Management');
+    story('Add product to basket');
+    severity('critical');
+    tag('smoke');
+    tag('market');
+    tag('basket');
 
     // ARRANGE: crear producto y añadirlo a la cesta
     const product = await apiClient.createProduct({
@@ -228,11 +244,13 @@ test.describe('Market Basket API', () => {
   //  PUT /api/basket — update quantity (absolute, not additive)
   // ════════════════════════════════════════════════════════════════
   test('PUT /api/basket updates quantity to absolute value', async ({ apiClient }) => {
-    await allure.epic('Market App');
-    await allure.feature('Basket Management');
-    await allure.story('Update basket quantity');
-    await allure.severity('normal');
-    await allure.tag('market', 'basket');
+    epic('Market App');
+    feature('Basket Management');
+    story('Add product to basket');
+    severity('critical');
+    tag('smoke');
+    tag('market');
+    tag('basket');
 
     const products = await apiClient.getProducts();
     const product   = products.find(p => p.stock >= 5);
@@ -259,11 +277,13 @@ test.describe('Market Basket API', () => {
   //  DELETE /api/basket/clear — empties basket completely
   // ════════════════════════════════════════════════════════════════
   test('DELETE /api/basket/clear empties basket', async ({ apiClient }) => {
-    await allure.epic('Market App');
-    await allure.feature('Basket Management');
-    await allure.story('Clear basket');
-    await allure.severity('normal');
-    await allure.tag('market', 'basket');
+    epic('Market App');
+    feature('Basket Management');
+    story('Add product to basket');
+    severity('critical');
+    tag('smoke');
+    tag('market');
+    tag('basket');
 
     // Añadir algo primero
     const product = await apiClient.getFirstProduct();

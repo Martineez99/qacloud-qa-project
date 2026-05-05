@@ -39,13 +39,11 @@ export interface Product {
  * test TC-ORD-004 (price_at_purchase integrity).
  */
 export interface OrderItem {
-  product_id: string;
   product_name: string;
   category: string;
-  price_at_purchase: number;
+  price: number;
   temperature_zone?: TemperatureZone;
   quantity: number;
-  subtotal: number;
 }
 
 export interface BasketItem {
@@ -66,10 +64,10 @@ export interface Order {
   id: string;
   order_number: string;
   status: OrderStatus;
-  order_items: OrderItem[];
   total_amount: number;
   created_at: string;
   notes?: string;
+  items: OrderItem[];
 }
 
 // ── Payloads de request ───────────────────────────────────────────
@@ -107,4 +105,8 @@ export interface UpdateProductPayload {
 export interface UpdateOrderPayload {
   status?: OrderStatus;
   notes?: string;
+}
+export interface PlaceOrderResponse  {
+  message: string;
+  order: Order;
 }

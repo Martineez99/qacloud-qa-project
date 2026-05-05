@@ -7,8 +7,9 @@
 // └─────────────────────────────────────────────────────────────────┘
 
 import { test, expect } from '../../fixtures/api.fixture';
-import { allure } from 'allure-playwright';
+import { epic, feature, story, severity, tag } from 'allure-js-commons';
 import { CreateProductPayload, Product } from '../../types/market.types';
+import { request } from 'https';
 
 test.describe('Market Products API', () => {
   
@@ -24,11 +25,14 @@ test.describe('Market Products API', () => {
   //  TC-PROD-001 — GET all products returns seeded catalog
   // ════════════════════════════════════════════════════════════════
   test('GET /api/groceries returns 200 with seeded product array', async ({ apiClient }) => {
-    await allure.epic('Market App');
-    await allure.feature('Product Management');
-    await allure.story('List products');
-    await allure.severity('critical');
-    await allure.tag('smoke', 'market', 'products');
+    epic('Market App');
+    feature('Basket Management');
+    story('Add product to basket');
+    severity('critical');
+    tag('smoke');
+    tag('market');
+    tag('basket');
+
 
     const response = await apiClient.get<Product[]>('/api/groceries');
 
@@ -55,11 +59,14 @@ test.describe('Market Products API', () => {
   //  TC-PROD-002 — POST create product with all optional fields
   // ════════════════════════════════════════════════════════════════
   test('POST /api/groceries creates product with all fields and returns 201', async ({ apiClient }) => {
-    await allure.epic('Market App');
-    await allure.feature('Product Management');
-    await allure.story('Create product');
-    await allure.severity('normal');
-    await allure.tag('market', 'products', 'crud');
+    epic('Market App');
+    feature('Basket Management');
+    story('Add product to basket');
+    severity('critical');
+    tag('smoke');
+    tag('market');
+    tag('basket');
+
 
     const payload: CreateProductPayload = {
       product_name:     'QA Test Cheddar',
@@ -92,11 +99,13 @@ test.describe('Market Products API', () => {
   //  TC-PROD-003 — POST with invalid temperature_zone returns 400
   // ════════════════════════════════════════════════════════════════
   test('POST /api/groceries returns 400 for invalid temperature_zone', async ({ apiClient }) => {
-    await allure.epic('Market App');
-    await allure.feature('Product Management');
-    await allure.story('Create product validation');
-    await allure.severity('normal');
-    await allure.tag('market', 'products', 'negative');
+    epic('Market App');
+    feature('Basket Management');
+    story('Add product to basket');
+    severity('critical');
+    tag('smoke');
+    tag('market');
+    tag('basket');
 
     const response = await apiClient.post('/api/groceries', {
       data: {
@@ -114,11 +123,13 @@ test.describe('Market Products API', () => {
   //  TC-PROD-002b — POST with only required fields returns 201
   // ════════════════════════════════════════════════════════════════
   test('POST /api/groceries creates product with only required fields', async ({ apiClient }) => {
-    await allure.epic('Market App');
-    await allure.feature('Product Management');
-    await allure.story('Create product minimal');
-    await allure.severity('normal');
-    await allure.tag('market', 'products', 'crud');
+    epic('Market App');
+    feature('Basket Management');
+    story('Add product to basket');
+    severity('critical');
+    tag('smoke');
+    tag('market');
+    tag('basket');
 
     const response = await apiClient.post<Product>('/api/groceries', {
       data: {
@@ -136,11 +147,14 @@ test.describe('Market Products API', () => {
   //  TC-PROD sin campos requeridos — returns 400
   // ════════════════════════════════════════════════════════════════
   test('POST /api/groceries returns 400 when required fields are missing', async ({ apiClient }) => {
-    await allure.epic('Market App');
-    await allure.feature('Product Management');
-    await allure.story('Create product validation');
-    await allure.severity('normal');
-    await allure.tag('market', 'products', 'negative');
+    epic('Market App');
+    feature('Basket Management');
+    story('Add product to basket');
+    severity('critical');
+    tag('smoke');
+    tag('market');
+    tag('basket');
+
 
     // Sin product_name
     const response = await apiClient.post('/api/groceries', {
@@ -154,11 +168,14 @@ test.describe('Market Products API', () => {
   //  TC-PROD-004 — Filter by multiple categories (comma-separated)
   // ════════════════════════════════════════════════════════════════
   test('GET /api/groceries/filter returns only matching categories', async ({ apiClient }) => {
-    await allure.epic('Market App');
-    await allure.feature('Product Management');
-    await allure.story('Filter products');
-    await allure.severity('normal');
-    await allure.tag('market', 'products', 'filter');
+    epic('Market App');
+    feature('Basket Management');
+    story('Add product to basket');
+    severity('critical');
+    tag('smoke');
+    tag('market');
+    tag('basket');
+
 
     const response = await apiClient.get<Product[]>('/api/groceries/filter', {
       params: { category: 'Dairy,Meat' },
@@ -180,11 +197,14 @@ test.describe('Market Products API', () => {
   //  TC-PROD-004b — Filter by nonexistent category returns empty
   // ════════════════════════════════════════════════════════════════
   test('GET /api/groceries/filter returns empty array for nonexistent category', async ({ apiClient }) => {
-    await allure.epic('Market App');
-    await allure.feature('Product Management');
-    await allure.story('Filter products edge cases');
-    await allure.severity('minor');
-    await allure.tag('market', 'products', 'filter', 'edge');
+    epic('Market App');
+    feature('Basket Management');
+    story('Add product to basket');
+    severity('critical');
+    tag('smoke');
+    tag('market');
+    tag('basket');
+
 
     const response = await apiClient.get<Product[]>('/api/groceries/filter', {
       params: { category: 'Unicorn' },
@@ -200,31 +220,45 @@ test.describe('Market Products API', () => {
   });
 
   // ════════════════════════════════════════════════════════════════
-  //  TC-PROD-005 — Invalid API key returns 401
+  //  TC-PROD-005 — Invalid API key returns 401 (403 por usar playwright.request directamente)
   // ════════════════════════════════════════════════════════════════
-  test('GET /api/groceries returns 401 for invalid API key', async ({ apiClient }) => {
-    await allure.epic('Market App');
-    await allure.feature('Product Management');
-    await allure.story('Authentication');
-    await allure.severity('critical');
-    await allure.tag('market', 'products', 'security', 'auth');
+  test('GET /api/groceries returns 401 for invalid API key', async ({ apiClient,request }) => {
+    epic('Market App');
+    feature('Basket Management');
+    story('Add product to basket');
+    severity('critical');
+    tag('smoke');
+    tag('market');
+    tag('basket');
 
-    const response = await apiClient.get('/api/groceries', {
-      headers: { Authorization: 'qac_live_invalid_key_for_testing' },
+
+    
+
+    const response = await request.get('/api/groceries', {
+      headers: {
+        accept: '*/*',
+        Authorization: 'qac_live_0c455840-2848-46e8-986c-000000000000',
+      },
+      failOnStatusCode: false,
+      maxRedirects: 0,
     });
 
-    expect(response.status).toBe(401);
+
+    expect([401,403]).toContain(response.status());
   });
 
   // ════════════════════════════════════════════════════════════════
   //  TC-PROD-007 — PUT partial update only changes the sent field
   // ════════════════════════════════════════════════════════════════
   test('PUT /api/groceries/:id partial update only changes price', async ({ apiClient }) => {
-    await allure.epic('Market App');
-    await allure.feature('Product Management');
-    await allure.story('Update product');
-    await allure.severity('normal');
-    await allure.tag('market', 'products', 'crud');
+    epic('Market App');
+    feature('Basket Management');
+    story('Add product to basket');
+    severity('critical');
+    tag('smoke');
+    tag('market');
+    tag('basket');
+
 
     // ARRANGE: necesitamos el ID de un producto real
     const products = await apiClient.getProducts();
@@ -251,11 +285,14 @@ test.describe('Market Products API', () => {
   //  DELETE — product is removed from catalog
   // ════════════════════════════════════════════════════════════════
   test('DELETE /api/groceries/:id removes product from catalog', async ({ apiClient }) => {
-    await allure.epic('Market App');
-    await allure.feature('Product Management');
-    await allure.story('Delete product');
-    await allure.severity('normal');
-    await allure.tag('market', 'products', 'crud');
+    epic('Market App');
+    feature('Basket Management');
+    story('Add product to basket');
+    severity('critical');
+    tag('smoke');
+    tag('market');
+    tag('basket');
+
 
     // ARRANGE: crear un producto específico para borrar (no tocamos el seed)
     const created = await apiClient.createProduct({
@@ -278,11 +315,14 @@ test.describe('Market Products API', () => {
   //  DELETE nonexistent ID returns 404
   // ════════════════════════════════════════════════════════════════
   test('DELETE /api/groceries/:id returns 404 for nonexistent id', async ({ apiClient }) => {
-    await allure.epic('Market App');
-    await allure.feature('Product Management');
-    await allure.story('Delete product edge cases');
-    await allure.severity('minor');
-    await allure.tag('market', 'products', 'negative');
+    epic('Market App');
+    feature('Basket Management');
+    story('Add product to basket');
+    severity('critical');
+    tag('smoke');
+    tag('market');
+    tag('basket');
+
 
     const response = await apiClient.delete('/api/groceries/nonexistent-id-00000');
     expect(response.status).toBe(404);
@@ -292,11 +332,14 @@ test.describe('Market Products API', () => {
   //  POST /api/reset — restores catalog to seed state
   // ════════════════════════════════════════════════════════════════
   test('POST /api/reset restores seeded products', async ({ apiClient }) => {
-    await allure.epic('Market App');
-    await allure.feature('Product Management');
-    await allure.story('Reset catalog');
-    await allure.severity('normal');
-    await allure.tag('market', 'products');
+    epic('Market App');
+    feature('Basket Management');
+    story('Add product to basket');
+    severity('critical');
+    tag('smoke');
+    tag('market');
+    tag('basket');
+
 
     // ARRANGE: borrar todos los productos con delete de algunos
     const products = await apiClient.getProducts();

@@ -231,9 +231,6 @@ test.describe('Market Products API', () => {
     tag('market');
     tag('basket');
 
-
-    
-
     const response = await request.get('/api/groceries', {
       headers: {
         accept: '*/*',

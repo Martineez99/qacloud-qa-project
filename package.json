@@ -19,7 +19,6 @@
     "format:check": "prettier --check src/",
     "typecheck": "tsc --noEmit",
     "auth:setup": "playwright test --config=config/playwright.config.ts --project=setup-platform --project=setup-market"
-
   },
   "keywords": [],
   "author": "",
@@ -30,6 +29,7 @@
     "@types/node": "^25.6.0",
     "@typescript-eslint/eslint-plugin": "^8.59.0",
     "@typescript-eslint/parser": "^8.59.0",
+    "ajv": "^8.20.0",
     "allure-commandline": "^2.38.1",
     "allure-playwright": "^3.7.1",
     "dotenv": "^17.4.2",

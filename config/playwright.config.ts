@@ -44,11 +44,15 @@ export default defineConfig({
   use: {
     baseURL: process.env.QACLOUD_BASE_URL || 'https://www.qacloud.dev',
     headless: process.env.HEADLESS !== 'false',
-    slowMo: Number(process.env.SLOW_MO) || 0,
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
     trace: 'retain-on-failure',
+    launchOptions: {
+      slowMo: Number(process.env.SLOW_MO) || 0,
+    }
   },
+
+ 
 
   projects: [
 

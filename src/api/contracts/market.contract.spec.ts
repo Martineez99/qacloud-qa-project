@@ -359,7 +359,6 @@ test.describe('Market API — Contract Tests (JSON Schema)', () => {
     const body = await res.json();
 
     expect(res.status()).toBe(200);
-    console.log(JSON.stringify(body, null, 2));
 
     // PUT devuelve { message, order } SIN items — schema específico para este endpoint
     validateSchema(updateOrderResponseSchema, body, `PUT /api/orders/${orderId}`);

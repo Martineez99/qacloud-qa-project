@@ -258,7 +258,6 @@ test.describe('Orders API — Edge Cases', () => {
     // ACT
     const orderRes  = await request.post(`${BASE_URL}/api/orders`, { headers: authHeaders });
     const orderBody = await orderRes.json();
-    console.log('Order response body:', orderBody); // Depuración para verificar estructura
     // ASSERT
     expect(orderBody.order.order_number).toMatch(/^O\d{5}$/);
   });

@@ -4,6 +4,14 @@ import path from 'path';
 
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
+// ─── Shared API headers ───────────────────────────────────────────────────────
+// Centralizado aquí para que todos los proyectos de API los hereden.
+// Los tests E2E no los necesitan (usan storageState / UI login).
+const apiHeaders = {
+  Authorization: process.env.QACLOUD_API_KEY || '',
+  'Content-Type': 'application/json',
+};
+
 export default defineConfig({
   testDir: '../src',
   timeout: Number(process.env.TEST_TIMEOUT) || 30000,
@@ -19,7 +27,7 @@ export default defineConfig({
       'allure-playwright',
       {
         detail: true,
-        resultsDir: path.resolve(__dirname, '../reports/allure-results'), // ← era outputFolder
+        resultsDir: path.resolve(__dirname, '../reports/allure-results'),
         suiteTitle: false,
         environmentInfo: {
           App_Version: '1.0.0',
@@ -31,6 +39,8 @@ export default defineConfig({
     ],
   ],
 
+  // ─── Defaults para E2E (browser) ────────────────────────────────────────────
+  // Los proyectos de API sobreescriben lo que no necesitan.
   use: {
     baseURL: process.env.QACLOUD_BASE_URL || 'https://www.qacloud.dev',
     headless: process.env.HEADLESS !== 'false',
@@ -41,7 +51,8 @@ export default defineConfig({
   },
 
   projects: [
-    // ── Setups ────────────────────────────────────────────────────────────────
+
+    // ── Setups ─────────────────────────────────────────────────────────────────
     {
       name: 'setup-platform',
       testMatch: '**/fixtures/platform.setup.ts',
@@ -51,11 +62,10 @@ export default defineConfig({
       testMatch: '**/fixtures/auth.setup.ts',
     },
 
-    // ── Smoke login: SIN sesión — prueban el formulario de login ──────────────
+    // ── Smoke login: SIN sesión — prueba el formulario de login ───────────────
     {
       name: 'smoke-login',
       testMatch: '**/e2e/smoke/login.spec.ts',
-      // Sin storageState ni dependencies — arranca sin sesión
     },
 
     // ── Smoke navigation: sesión de plataforma ────────────────────────────────
@@ -79,16 +89,34 @@ export default defineConfig({
         storageState: '.auth/market.json',
       },
     },
-    // ── API Market: pruebas de API sin sesión (usando API key) ───────────────
+
+    // ── API Market ─────────────────────────────────────────────────────────────
+    // Sin browser — sobreescribe lo que no aplica a requests HTTP puros.
     {
       name: 'api-market',
       testMatch: '**/api/market/**/*.spec.ts',
+      timeout: 15000, // Las llamadas API son más rápidas que los flujos E2E
+      use: {
+        extraHTTPHeaders: apiHeaders,
+        // No necesitan browser artifacts
+        screenshot: 'off',
+        video: 'off',
+        trace: 'off',
+      },
     },
-    // ── API Market Contracts: pruebas de contratos de API ──────────────────── 
+
+    // ── API Market — Contract tests ────────────────────────────────────────────
     {
       name: 'api-market-contract',
       testMatch: '**/api/contracts/**/*.spec.ts',
-    }, 
-  ],
+      timeout: 15000,
+      use: {
+        extraHTTPHeaders: apiHeaders,
+        screenshot: 'off',
+        video: 'off',
+        trace: 'off',
+      },
+    },
 
+  ],
 });

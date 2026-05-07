@@ -773,8 +773,8 @@ export const options = {
 [✅] E2E tests: Products CRUD flow
 [✅] E2E tests: Complete purchase journey
 [✅] API tests: Market CRUD completo
-[ ] API tests: Edge cases (stock validation, empty basket)
-[ ] Contract tests: JSON Schema para Market API
+[✅] API tests: Edge cases (stock validation, empty basket)
+[✅] Contract tests: JSON Schema para Market API
 [ ] K6: Market baseline load test
 ```
 

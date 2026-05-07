@@ -79,15 +79,16 @@ export default defineConfig({
         storageState: '.auth/market.json',
       },
     },
-
+    // ── API Market: pruebas de API sin sesión (usando API key) ───────────────
     {
       name: 'api-market',
       testMatch: '**/api/market/**/*.spec.ts',
-      use: {
-        ...devices['Desktop Chrome'],
-      },
     },
+    // ── API Market Contracts: pruebas de contratos de API ──────────────────── 
+    {
+      name: 'api-market-contract',
+      testMatch: '**/api/contracts/**/*.spec.ts',
+    }, 
   ],
 
-  
 });

@@ -20,7 +20,9 @@ test.describe('Orders API — Edge Cases', () => {
     await allure.feature('Order Management');
     await allure.story('Empty basket order prevention');
     await allure.severity('critical');
-    await allure.tag('orders', 'edge-case', 'negative');
+    await allure.tag('orders');
+    await allure.tag('edge-case');
+    await allure.tag('negative');
 
     // ARRANGE — beforeEach ya garantiza la cesta vacía
 
@@ -39,7 +41,9 @@ test.describe('Orders API — Edge Cases', () => {
     await allure.feature('Order Management');
     await allure.story('Empty basket order prevention after clear');
     await allure.severity('normal');
-    await allure.tag('orders', 'edge-case', 'negative');
+    await allure.tag('orders');
+    await allure.tag('edge-case');
+    await allure.tag('negative');
 
     // ARRANGE — añadir, luego limpiar
     const listRes = await request.get(`${BASE_URL}/api/groceries`, { headers: authHeaders });
@@ -65,7 +69,9 @@ test.describe('Orders API — Edge Cases', () => {
     await allure.feature('Order Management');
     await allure.story('Order total calculation accuracy');
     await allure.severity('critical');
-    await allure.tag('orders', 'edge-case', 'data-integrity');
+    await allure.tag('orders');
+    await allure.tag('edge-case');
+    await allure.tag('data-integrity');
 
     // ARRANGE — crear productos con precios conocidos
     const p1Res = await request.post(`${BASE_URL}/api/groceries`, {
@@ -106,7 +112,10 @@ test.describe('Orders API — Edge Cases', () => {
     await allure.feature('Order Management');
     await allure.story('Price snapshot integrity');
     await allure.severity('critical');
-    await allure.tag('orders', 'edge-case', 'data-integrity', 'price-snapshot');
+    await allure.tag('orders');
+    await allure.tag('edge-case');
+    await allure.tag('data-integrity');
+    await allure.tag('price-snapshot');
 
     // ARRANGE
     const createRes = await request.post(`${BASE_URL}/api/groceries`, {
@@ -164,7 +173,9 @@ test.describe('Orders API — Edge Cases', () => {
     await allure.feature('Order Management');
     await allure.story('Stock decrement after order placement');
     await allure.severity('critical');
-    await allure.tag('orders', 'edge-case', 'stock');
+    await allure.tag('orders');
+    await allure.tag('edge-case');
+    await allure.tag('stock');
 
     // ARRANGE
     const createRes = await request.post(`${BASE_URL}/api/groceries`, {
@@ -196,7 +207,10 @@ test.describe('Orders API — Edge Cases', () => {
     await allure.feature('Order Management');
     await allure.story('Order status validation');
     await allure.severity('normal');
-    await allure.tag('orders', 'edge-case', 'negative', 'validation');
+    await allure.tag('orders');
+    await allure.tag('edge-case');
+    await allure.tag('negative');
+    await allure.tag('validation');
 
     // ARRANGE — colocar un pedido
     const listRes  = await request.get(`${BASE_URL}/api/groceries`, { headers: authHeaders });
@@ -227,7 +241,9 @@ test.describe('Orders API — Edge Cases', () => {
     await allure.feature('Order Management');
     await allure.story('Order number format validation');
     await allure.severity('minor');
-    await allure.tag('orders', 'edge-case', 'format');
+    await allure.tag('orders');
+    await allure.tag('edge-case');
+    await allure.tag('format');
 
     // ARRANGE
     const listRes  = await request.get(`${BASE_URL}/api/groceries`, { headers: authHeaders });
@@ -253,7 +269,10 @@ test.describe('Orders API — Edge Cases', () => {
     await allure.feature('Order Management');
     await allure.story('Basket cleared after successful order');
     await allure.severity('critical');
-    await allure.tag('orders', 'edge-case', 'basket', 'side-effect');
+    await allure.tag('orders');
+    await allure.tag('edge-case');
+    await allure.tag('basket');
+    await allure.tag('side-effect');
 
     // ARRANGE
     const listRes  = await request.get(`${BASE_URL}/api/groceries`, { headers: authHeaders });

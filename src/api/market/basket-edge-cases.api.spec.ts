@@ -40,7 +40,9 @@ test.describe('Basket API — Edge Cases & Stock Validation', () => {
     await allure.feature('Basket Management');
     await allure.story('Basket accumulation / merge logic');
     await allure.severity('normal');
-    await allure.tag('basket', 'edge-case', 'merge');
+    await allure.tag('basket');
+    await allure.tag('edge-case');
+    await allure.tag('merge');
 
     // ARRANGE
     const product = await getProductWithStock(request, 5);
@@ -76,7 +78,10 @@ test.describe('Basket API — Edge Cases & Stock Validation', () => {
     await allure.feature('Basket Management');
     await allure.story('Stock validation');
     await allure.severity('critical');
-    await allure.tag('basket', 'edge-case', 'stock', 'negative');
+    await allure.tag('basket');
+    await allure.tag('edge-case');
+    await allure.tag('stock');
+    await allure.tag('negative');
 
     // ARRANGE — necesitamos un producto con stock conocido y bajo
     // Creamos uno con stock=5 para controlar el escenario exactamente
@@ -111,7 +116,10 @@ test.describe('Basket API — Edge Cases & Stock Validation', () => {
     await allure.feature('Basket Management');
     await allure.story('Stock validation with existing basket items');
     await allure.severity('critical');
-    await allure.tag('basket', 'edge-case', 'stock', 'negative');
+    await allure.tag('basket');
+    await allure.tag('edge-case');
+    await allure.tag('stock');
+    await allure.tag('negative');
 
     // ARRANGE — producto con stock=5
     const createRes = await request.post(`${BASE_URL}/api/groceries`, {
@@ -152,7 +160,10 @@ test.describe('Basket API — Edge Cases & Stock Validation', () => {
     await allure.feature('Basket Management');
     await allure.story('Quantity boundary validation');
     await allure.severity('normal');
-    await allure.tag('basket', 'edge-case', 'negative', 'validation');
+    await allure.tag('basket');
+    await allure.tag('edge-case');
+    await allure.tag('negative');
+    await allure.tag('validation');
 
     // ARRANGE
     const product = await getProductWithStock(request, 1);
@@ -175,7 +186,10 @@ test.describe('Basket API — Edge Cases & Stock Validation', () => {
     await allure.feature('Basket Management');
     await allure.story('Quantity boundary validation');
     await allure.severity('normal');
-    await allure.tag('basket', 'edge-case', 'negative', 'validation');
+    await allure.tag('basket');
+    await allure.tag('edge-case');
+    await allure.tag('negative');
+    await allure.tag('validation');
 
     const product = await getProductWithStock(request, 1);
 
@@ -193,7 +207,9 @@ test.describe('Basket API — Edge Cases & Stock Validation', () => {
     await allure.feature('Basket Management');
     await allure.story('Cascade delete: product → basket');
     await allure.severity('critical');
-    await allure.tag('basket', 'edge-case', 'cascade');
+    await allure.tag('basket');
+    await allure.tag('edge-case');
+    await allure.tag('cascade');
 
     // ARRANGE — producto custom para controlar el ciclo de vida completo
     const createRes = await request.post(`${BASE_URL}/api/groceries`, {
@@ -239,7 +255,10 @@ test.describe('Basket API — Edge Cases & Stock Validation', () => {
     await allure.feature('Basket Management');
     await allure.story('Stock boundary — exact limit accepted');
     await allure.severity('normal');
-    await allure.tag('basket', 'edge-case', 'boundary', 'positive');
+    await allure.tag('basket');
+    await allure.tag('edge-case');
+    await allure.tag('boundary');
+    await allure.tag('positive');
 
     // ARRANGE — producto con stock=3
     const createRes = await request.post(`${BASE_URL}/api/groceries`, {

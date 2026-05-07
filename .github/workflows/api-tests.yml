@@ -8,12 +8,17 @@ on:
       - 'src/utils/**'
       - 'src/types/**'
       - 'src/fixtures/**'
-      - 'config/playwright.api.config.ts'
+      - 'config/playwright.config.ts' # ← único config, ya no hay playwright.api.config.ts
 
 jobs:
   api-tests:
     name: Run API Tests
     runs-on: ubuntu-latest
+
+    env:
+      QACLOUD_BASE_URL: ${{ secrets.QACLOUD_BASE_URL }}
+      QACLOUD_API_KEY: ${{ secrets.QACLOUD_API_KEY }}
+      CI: true
 
     steps:
       - name: Checkout code
@@ -28,17 +33,25 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Los tests de API no necesitan browser — solo el runner de Playwright
+      # No hace falta `npx playwright install`
+
       - name: Run Market API tests
-        run: npx playwright test src/api/ --config=config/playwright.api.config.ts --reporter=list
-        env:
-          QACLOUD_BASE_URL: ${{ secrets.QACLOUD_BASE_URL }}
-          QACLOUD_API_KEY: ${{ secrets.QACLOUD_API_KEY }}
+        run: >
+          npx playwright test
+          --config=config/playwright.config.ts
+          --project=api-market
+          --project=api-market-contract
+          --workers=1
+          --reporter=list
+        # --workers=1 porque los tests de API comparten estado en el servidor
+        # (basket, productos) y la ejecución en paralelo puede generar interferencias
 
       - name: Upload Allure results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: allure-results-api
+          name: allure-results-api-${{ github.run_number }}
           path: reports/allure-results/
           retention-days: 7
 
@@ -46,6 +59,6 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results-api
+          name: test-results-api-${{ github.run_number }}
           path: test-results/
           retention-days: 7

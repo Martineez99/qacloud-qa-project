@@ -174,7 +174,6 @@ test.describe('Basket API — Edge Cases & Stock Validation', () => {
       data: { product_id: product.id, quantity: 0 },
     });
     const body = await res.json();
-    console.log('Response body:', body); // debug
     // ASSERT
     expect(res.status()).toBe(400);
     expect(body.message ?? body.error).toMatch(/product_id and quantity are required/i);

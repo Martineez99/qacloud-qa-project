@@ -1,19 +1,29 @@
+# .github/workflows/api-tests.yml
+#
+# Triggers activos:
+#   · pull_request → develop : solo si cambian ficheros relevantes
+#
+# ⚠️  pull_request → main se gestiona en ci-pr-main.yml (flujo serializado
+#     api-tests → e2e-full → allure combinado). No duplicar aquí.
+
 name: API Tests — Market
 
 on:
+  # PRs hacia develop: solo si cambian ficheros relevantes (evita runs innecesarios)
   pull_request:
-    branches: [develop, main]
+    branches: [develop]   # ← main eliminado intencionalmente; lo gestiona ci-pr-main.yml
     paths:
       - 'src/api/**'
       - 'src/utils/**'
       - 'src/types/**'
       - 'src/fixtures/**'
-      - 'config/playwright.config.ts' # ← único config, ya no hay playwright.api.config.ts
+      - 'config/playwright.config.ts'
 
 jobs:
   api-tests:
     name: Run API Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     env:
       QACLOUD_BASE_URL: ${{ secrets.QACLOUD_BASE_URL }}
@@ -34,8 +44,6 @@ jobs:
         run: npm ci
 
       # Los tests de API no necesitan browser — solo el runner de Playwright
-      # No hace falta `npx playwright install`
-
       - name: Run Market API tests
         run: >
           npx playwright test
@@ -45,7 +53,6 @@ jobs:
           --workers=1
           --reporter=list
         # --workers=1 porque los tests de API comparten estado en el servidor
-        # (basket, productos) y la ejecución en paralelo puede generar interferencias
 
       - name: Upload Allure results
         if: always()
@@ -62,3 +69,37 @@ jobs:
           name: test-results-api-${{ github.run_number }}
           path: test-results/
           retention-days: 7
+
+  allure-report:
+    name: Generate Allure Report
+    runs-on: ubuntu-latest
+    needs: api-tests
+    if: always()
+
+    steps:
+      - name: Download Allure results
+        uses: actions/download-artifact@v4
+        with:
+          name: allure-results-api-${{ github.run_number }}
+          path: reports/allure-results/
+        continue-on-error: true
+
+      - name: Setup Java (requerido por Allure CLI)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Install Allure CLI
+        run: npm install -g allure-commandline@2.38.1
+
+      - name: Generate Allure report
+        run: allure generate reports/allure-results -o reports/allure-report --clean
+
+      - name: Upload Allure HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-report-api-${{ github.run_number }}
+          path: reports/allure-report/
+          retention-days: 14

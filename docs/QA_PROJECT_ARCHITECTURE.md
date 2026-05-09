@@ -775,7 +775,10 @@ export const options = {
 [✅] API tests: Market CRUD completo
 [✅] API tests: Edge cases (stock validation, empty basket)
 [✅] Contract tests: JSON Schema para Market API
-[ ] K6: Market baseline load test
+[✅] K6: Market baseline load test
+[ ] Allure Report publicado en GitHub Pages
+[ ] Nightly pipeline — regresión completa con reporte automático
+[ ] README profesional del proyecto
 ```
 
 ### Sprint 3 — Hotel + Bank (Semana 5-6)

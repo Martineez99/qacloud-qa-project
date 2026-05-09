@@ -1,0 +1,16 @@
+{
+  "filterCombinations": [
+    { "category": "Dairy",            "sort": "asc"  },
+    { "category": "Meat",             "sort": "asc"  },
+    { "category": "Produce",          "sort": "desc" },
+    { "category": "Beverages",        "sort": "asc"  },
+    { "category": "Bakery",           "sort": "desc" },
+    { "category": "Frozen",           "sort": "asc"  },
+    { "category": "Deli",             "sort": "desc" },
+    { "category": "Pantry",           "sort": "asc"  },
+    { "category": "Dairy,Meat",       "sort": "asc"  },
+    { "category": "Produce,Beverages","sort": "desc" },
+    { "category": "Frozen,Deli",      "sort": "asc"  },
+    { "category": "Meat,Bakery",      "sort": "desc" }
+  ]
+}

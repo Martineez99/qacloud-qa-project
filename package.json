@@ -10,6 +10,8 @@
     "test:e2e:hotel": "playwright test --config=config/playwright.config.ts src/e2e/hotel/",
     "test:api": "playwright test --config=config/playwright.api.config.ts",
     "test:smoke": "playwright test --config=config/playwright.config.ts --grep @smoke",
+    "test:perf": "k6 run src/performance/scenarios/market-load.js",
+    "test:perf:stress": "k6 run src/performance/scenarios/bank-stress.js",
     "report:generate": "allure generate reports/allure-results -o reports/allure-report --clean",
     "report:open": "allure open reports/allure-report",
     "report:serve": "allure serve reports/allure-results",
@@ -17,7 +19,8 @@
     "lint:fix": "eslint src/ --ext .ts --fix",
     "format": "prettier --write src/",
     "format:check": "prettier --check src/",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "auth:setup": "playwright test --config=config/playwright.config.ts --project=setup-platform --project=setup-market"
   },
   "keywords": [],
   "author": "",
@@ -28,6 +31,7 @@
     "@types/node": "^25.6.0",
     "@typescript-eslint/eslint-plugin": "^8.59.0",
     "@typescript-eslint/parser": "^8.59.0",
+    "ajv": "^8.20.0",
     "allure-commandline": "^2.38.1",
     "allure-playwright": "^3.7.1",
     "dotenv": "^17.4.2",

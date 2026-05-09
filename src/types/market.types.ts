@@ -1,69 +1,112 @@
 // ┌─────────────────────────────────────────────────────────────────┐
 // │  market.types.ts                                                │
 // │  Interfaces que modelan los recursos de la Market API           │
+// │                                                                 │
+// │  IMPORTANTE: los nombres de campo siguen la convención          │
+// │  snake_case de la API REST de qacloud.dev. No camelCase.         │
+// │  Así los tests pueden hacer assertions directas contra el body   │
+// │  parseado sin transformaciones intermedias.                     │
 // └─────────────────────────────────────────────────────────────────┘
 
+// ── Tipos auxiliares ──────────────────────────────────────────────
+
 /**
- * ¿Por qué definimos estos tipos aquí y no dentro de los tests?
- *
- * 1. Reutilización: el mismo Product se usa en E2E tests, API tests y el data-factory
- * 2. Contract testing: cuando validamos que la API devuelve la estructura correcta,
- *    TypeScript nos avisa si el schema cambia sin que actualicemos los tests
- * 3. Autocomplete: al escribir `product.` en tu editor ves todos los campos disponibles
+ * Los únicos valores válidos para temperature_zone.
+ * Si la API añade uno nuevo y no actualizamos este union, TypeScript
+ * nos avisa en compile time antes de que fallen los tests en runtime.
  */
+export type TemperatureZone = 'Dry' | 'Frozen' | 'Chilled' | 'Room Temperature';
+
+export type OrderStatus = 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+
+// ── Recursos principales ──────────────────────────────────────────
 
 export interface Product {
   id: string;
-  name: string;
+  product_name: string;
   price: number;
   stock: number;
   category: string;
-  description?: string;
-  imageUrl?: string;
+  temperature_zone?: TemperatureZone;
+  weighted?: boolean;
+  details?: Record<string, unknown>;
+}
+
+/**
+ * Snapshot de un producto en el momento de la compra.
+ * Los campos son inmutables: aunque el producto se actualice o borre,
+ * este snapshot conserva los valores originales. Es el corazón del
+ * test TC-ORD-004 (price_at_purchase integrity).
+ */
+export interface OrderItem {
+  product_name: string;
+  category: string;
+  price: number;
+  temperature_zone?: TemperatureZone;
+  quantity: number;
 }
 
 export interface BasketItem {
-  productId: string;
-  productName: string;
+  product_id: string;
+  product_name: string;
   quantity: number;
-  unitPrice: number;
+  price: number;
   subtotal: number;
+  stock_available?: number;
 }
 
 export interface Basket {
-  id: string;
   items: BasketItem[];
   total: number;
-  itemCount: number;
 }
 
 export interface Order {
   id: string;
+  order_number: string;
   status: OrderStatus;
-  items: BasketItem[];
-  total: number;
-  createdAt: string;
+  total_amount: number;
+  created_at: string;
+  notes?: string;
+  items: OrderItem[];
 }
 
-/**
- * Union type de estados posibles de una orden.
- * Esto nos protege de errores tipográficos en assertions:
- * expect(order.status).toBe('pending')  ✅
- * expect(order.status).toBe('panding')  ❌ TypeScript lo detecta
- */
-export type OrderStatus = 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
-
-// ── Payloads de request (lo que ENVIAMOS) ────────────────────────────────────
+// ── Payloads de request ───────────────────────────────────────────
 
 export interface AddToBasketPayload {
-  productId: string;
+  product_id: string;
+  quantity: number;
+}
+
+export interface UpdateBasketPayload {
+  product_id: string;
   quantity: number;
 }
 
 export interface CreateProductPayload {
-  name: string;
+  product_name: string;
   price: number;
-  stock: number;
   category: string;
-  description?: string;
+  stock?: number;
+  temperature_zone?: TemperatureZone;
+  weighted?: boolean;
+  details?: Record<string, unknown>;
+}
+
+export interface UpdateProductPayload {
+  product_name?: string;
+  price?: number;
+  category?: string;
+  stock?: number;
+  temperature_zone?: TemperatureZone;
+  weighted?: boolean;
+  details?: Record<string, unknown>;
+}
+
+export interface UpdateOrderPayload {
+  status?: OrderStatus;
+  notes?: string;
+}
+export interface PlaceOrderResponse  {
+  message: string;
+  order: Order;
 }

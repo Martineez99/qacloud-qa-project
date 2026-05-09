@@ -166,3 +166,5 @@ dist/
 # OS
 .DS_Store
 Thumbs.db
+# Auth state (contiene tokens sensibles)
+.auth/

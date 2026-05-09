@@ -769,13 +769,16 @@ export const options = {
 
 ### Sprint 2 — Market App (Semana 3-4)
 ```
-[ ] Page Objects: MarketPage, BasketPage, OrdersPage
-[ ] E2E tests: Products CRUD flow
-[ ] E2E tests: Complete purchase journey
-[ ] API tests: Market CRUD completo
-[ ] API tests: Edge cases (stock validation, empty basket)
-[ ] Contract tests: JSON Schema para Market API
-[ ] K6: Market baseline load test
+[✅] Page Objects: MarketPage, BasketPage, OrdersPage
+[✅] E2E tests: Products CRUD flow
+[✅] E2E tests: Complete purchase journey
+[✅] API tests: Market CRUD completo
+[✅] API tests: Edge cases (stock validation, empty basket)
+[✅] Contract tests: JSON Schema para Market API
+[✅] K6: Market baseline load test
+[ ] Allure Report publicado en GitHub Pages
+[ ] Nightly pipeline — regresión completa con reporte automático
+[ ] README profesional del proyecto
 ```
 
 ### Sprint 3 — Hotel + Bank (Semana 5-6)

@@ -1,25 +1,34 @@
 # .github/workflows/e2e-tests.yml
 # ─────────────────────────────────────────────────────────────────
-# Pipeline E2E — Sprint 1: Smoke tests básicos
-# Triggers: push a develop + PR hacia develop o main
-# Scope actual: @smoke tests en Chromium
-# Preparado para: matrix strategy (Sprint 2+), Allure Pages (Sprint 4)
+# Pipeline E2E — Market App
+# Triggers:
+#   - PR hacia develop o main  → corre tests (validación)
+#   - Push a main              → corre tests + publica Allure en Pages
 # ─────────────────────────────────────────────────────────────────
 
 name: E2E Tests
 
 on:
+  push:
+    branches:
+      - main
   pull_request:
     branches:
       - develop
       - main
 
-# Evita ejecuciones duplicadas si llega un nuevo push mientras corre una anterior
 concurrency:
   group: e2e-${{ github.ref }}
   cancel-in-progress: true
 
+# Permisos necesarios para publicar en GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
 jobs:
+  # ── JOB 1: Ejecutar tests ────────────────────────────────────────
   e2e-smoke:
     name: Smoke Tests — Chromium
     runs-on: ubuntu-latest
@@ -34,32 +43,24 @@ jobs:
       CI: true
 
     steps:
-      # ── 1. CHECKOUT ──────────────────────────────────────────────
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # ── 2. NODE.JS ───────────────────────────────────────────────
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: "npm"
 
-      # ── 3. DEPENDENCIAS ──────────────────────────────────────────
       - name: Install dependencies
         run: npm ci
 
-      # ── 4. PLAYWRIGHT BROWSERS ───────────────────────────────────
-      # Solo Chromium en CI para reducir tiempo y uso de disco
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
-      # ── 5. EJECUTAR SMOKE TESTS ──────────────────────────────────
       - name: Run smoke tests
-        run: npx playwright test --config=config/playwright.config.ts --grep @smoke --project=chromium
-        continue-on-error: true
+        run: npx playwright test --config=config/playwright.config.ts --grep @smoke --project=smoke-login --project=smoke-navigation
 
-      # ── 6. ARTIFACTS — siempre se suben, fallen o pasen ──────────
       - name: Upload Allure results
         if: always()
         uses: actions/upload-artifact@v4
@@ -68,7 +69,6 @@ jobs:
           path: reports/allure-results/
           retention-days: 30
 
-      # test-results contiene screenshots, videos y traces en fallos
       - name: Upload test results (videos y traces en fallos)
         if: always()
         uses: actions/upload-artifact@v4
@@ -76,3 +76,37 @@ jobs:
           name: test-results-${{ github.run_number }}
           path: test-results/
           retention-days: 7
+
+  # ── JOB 2: Publicar Allure en GitHub Pages ───────────────────────
+  # Solo se ejecuta cuando el código llega a main (post-merge)
+  deploy-report:
+    name: Publish Allure Report → GitHub Pages
+    needs: e2e-smoke
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Download Allure results
+        uses: actions/download-artifact@v4
+        with:
+          name: allure-results-${{ github.run_number }}
+          path: allure-results
+
+      - name: Install Allure CLI
+        run: npm install -g allure-commandline@2.38.1
+
+      - name: Generate Allure report
+        run: allure generate allure-results -o allure-report --clean
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: allure-report
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

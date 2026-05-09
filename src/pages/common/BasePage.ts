@@ -3,6 +3,17 @@ import { type Locator, type Page } from '@playwright/test';
 export class BasePage {
   constructor(protected page: Page) {}
 
+
+  // ── Página subyacente ─────────────────────────────────────────────────────
+ 
+  /**
+   * Expone la instancia de Page para que otras POMs puedan instanciarse
+   * sobre la misma página (ej: BasketPage y OrdersPage desde marketPage).
+   */
+  getPage(): Page {
+    return this.page;
+  }
+
   // ── Navegación ────────────────────────────────────────────────────────────
 
   async navigate(path: string): Promise<void> {
@@ -69,5 +80,9 @@ export class BasePage {
 
   async getAllTextsFromList(listLocator: Locator): Promise<string[]> {
     return listLocator.allTextContents();
+  }
+
+  async pause(ms: number) {
+  await this.page.waitForTimeout(ms);
   }
 }

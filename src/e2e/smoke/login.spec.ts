@@ -41,20 +41,4 @@ test.describe('Smoke Tests — Login & Navigation', () => {
     await expect(loginPage.userMenuOrAvatar).not.toBeVisible();
   });
 
-  // ── NAVIGATION ─────────────────────────────────────────────────────────────
-
-    test.describe('Navigation — app accessibility', () => {
-
-    const apps = ['market', 'hotel', 'bank', 'tasks', 'rental'] as const;
-
-    for (const app of apps) {
-        test(`${app} app loads successfully`, {
-        tag: ['@smoke', '@navigation'],
-        }, async ({ nav }) => {   // ← nav ya viene autenticado
-
-        await nav.goToApp(app);           // click botón en profile.html
-        await nav.expectAppLoaded(app);   // verifica /market.html cargó
-        });
-    }
-    });
 });

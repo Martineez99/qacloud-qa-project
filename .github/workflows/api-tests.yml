@@ -9,6 +9,7 @@
 name: API Tests — Market
 
 on:
+  # PRs hacia develop: solo si cambian ficheros relevantes (evita runs innecesarios)
   pull_request:
     branches: [develop]   # ← main eliminado intencionalmente; lo gestiona ci-pr-main.yml
     paths:

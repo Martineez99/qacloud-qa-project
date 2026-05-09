@@ -1,11 +1,4 @@
 # .github/workflows/e2e-tests.yml
-# ─────────────────────────────────────────────────────────────────
-# Pipeline E2E — Market App
-# Triggers:
-#   - PR hacia develop o main  → corre tests (validación)
-#   - Push a main              → corre tests + publica Allure en Pages
-# ─────────────────────────────────────────────────────────────────
-
 name: E2E Tests
 
 on:
@@ -21,18 +14,19 @@ concurrency:
   group: e2e-${{ github.ref }}
   cancel-in-progress: true
 
-# Permisos necesarios para publicar en GitHub Pages
 permissions:
   contents: read
   pages: write
   id-token: write
 
 jobs:
-  # ── JOB 1: Ejecutar tests ────────────────────────────────────────
+  # ── JOB 1: Smoke Tests — solo en PRs hacia develop ───────────────
+  # Feedback rápido: 2-3 min. No bloquea con regresión completa.
   e2e-smoke:
     name: Smoke Tests — Chromium
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 10
+    if: github.event_name == 'pull_request' && github.base_ref == 'develop'
 
     env:
       QACLOUD_BASE_URL: ${{ secrets.QACLOUD_BASE_URL }}
@@ -65,7 +59,54 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: allure-results-${{ github.run_number }}
+          name: allure-results-smoke-${{ github.run_number }}
+          path: reports/allure-results/
+          retention-days: 7
+
+  # ── JOB 2: Full E2E — en PRs hacia main y en push a main ─────────
+  # Regresión completa: todos los proyectos E2E de Market.
+  # Es el gate de calidad antes de que el código sea "oficial".
+  e2e-full:
+    name: Full E2E — Chromium
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: |
+      (github.event_name == 'pull_request' && github.base_ref == 'main') ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main')
+
+    env:
+      QACLOUD_BASE_URL: ${{ secrets.QACLOUD_BASE_URL }}
+      QACLOUD_API_KEY: ${{ secrets.QACLOUD_API_KEY }}
+      QACLOUD_USERNAME: ${{ secrets.QACLOUD_USERNAME }}
+      QACLOUD_PASSWORD: ${{ secrets.QACLOUD_PASSWORD }}
+      HEADLESS: true
+      CI: true
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      # Todos los proyectos E2E — sin --grep, sin filtrar por @smoke
+      - name: Run full E2E suite
+        run: npx playwright test --config=config/playwright.config.ts --project=smoke-login --project=smoke-navigation --project=e2e-market
+
+      - name: Upload Allure results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results-e2e-${{ github.run_number }}
           path: reports/allure-results/
           retention-days: 30
 
@@ -73,16 +114,16 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results-${{ github.run_number }}
+          name: test-results-e2e-${{ github.run_number }}
           path: test-results/
           retention-days: 7
 
-  # ── JOB 2: Publicar Allure en GitHub Pages ───────────────────────
-  # Solo se ejecuta cuando el código llega a main (post-merge)
+  # ── JOB 3: Publicar Allure en GitHub Pages ───────────────────────
+  # Depende del full E2E. Solo se ejecuta tras push a main.
   deploy-report:
     name: Publish Allure Report → GitHub Pages
-    needs: e2e-smoke
-    if: github.ref == 'refs/heads/main'
+    needs: e2e-full
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
 
     environment:
@@ -93,7 +134,7 @@ jobs:
       - name: Download Allure results
         uses: actions/download-artifact@v4
         with:
-          name: allure-results-${{ github.run_number }}
+          name: allure-results-e2e-${{ github.run_number }}
           path: allure-results
 
       - name: Install Allure CLI

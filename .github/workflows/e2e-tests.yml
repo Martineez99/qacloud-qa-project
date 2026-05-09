@@ -1,4 +1,12 @@
 # .github/workflows/e2e-tests.yml
+#
+# Triggers activos:
+#   · pull_request → develop  : smoke tests (feedback rápido, ~2-3 min)
+#   · push → main             : full E2E + deploy Allure en GitHub Pages
+#
+# ⚠️  pull_request → main se gestiona en ci-pr-main.yml (flujo serializado
+#     api-tests → e2e-full → allure combinado). No duplicar aquí.
+
 name: E2E Tests
 
 on:
@@ -7,8 +15,7 @@ on:
       - main
   pull_request:
     branches:
-      - develop
-      - main
+      - develop   # ← main eliminado intencionalmente; lo gestiona ci-pr-main.yml
 
 concurrency:
   group: e2e-${{ github.ref }}
@@ -63,16 +70,13 @@ jobs:
           path: reports/allure-results/
           retention-days: 7
 
-  # ── JOB 2: Full E2E — en PRs hacia main y en push a main ─────────
-  # Regresión completa: todos los proyectos E2E de Market.
-  # Es el gate de calidad antes de que el código sea "oficial".
+  # ── JOB 2: Full E2E — solo en push a main ────────────────────────
+  # Regresión completa tras merge. También alimenta el deploy de Pages.
   e2e-full:
     name: Full E2E — Chromium
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    if: |
-      (github.event_name == 'pull_request' && github.base_ref == 'main') ||
-      (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     env:
       QACLOUD_BASE_URL: ${{ secrets.QACLOUD_BASE_URL }}
@@ -98,7 +102,6 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
-      # Todos los proyectos E2E — sin --grep, sin filtrar por @smoke
       - name: Run full E2E suite
         run: npx playwright test --config=config/playwright.config.ts --project=smoke-login --project=smoke-navigation --project=e2e-market
 
@@ -119,11 +122,15 @@ jobs:
           retention-days: 7
 
   # ── JOB 3: Publicar Allure en GitHub Pages ───────────────────────
-  # Depende del full E2E. Solo se ejecuta tras push a main.
+  # Solo tras push a main. Depende del full E2E.
+  # if: always() → publica aunque e2e-full tenga fallos (reporte con rojos)
   deploy-report:
     name: Publish Allure Report → GitHub Pages
     needs: e2e-full
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: |
+      always() &&
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
 
     environment:

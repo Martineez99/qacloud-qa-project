@@ -1,9 +1,17 @@
+# .github/workflows/api-tests.yml
+#
+# Triggers activos:
+#   · pull_request → develop : solo si cambian ficheros relevantes
+#
+# ⚠️  pull_request → main se gestiona en ci-pr-main.yml (flujo serializado
+#     api-tests → e2e-full → allure combinado). No duplicar aquí.
+
 name: API Tests — Market
 
 on:
   # PRs hacia develop: solo si cambian ficheros relevantes (evita runs innecesarios)
   pull_request:
-    branches: [develop]
+    branches: [develop]   # ← main eliminado intencionalmente; lo gestiona ci-pr-main.yml
     paths:
       - 'src/api/**'
       - 'src/utils/**'
@@ -11,16 +19,11 @@ on:
       - 'src/fixtures/**'
       - 'config/playwright.config.ts'
 
-  # PRs hacia main: SIEMPRE, sin filtro de paths
-  # Un PR develop→main es el gate final; los tests deben correr siempre
-  pull_request_target:
-    branches: [main]
-    types: [opened, synchronize, reopened]
-
 jobs:
   api-tests:
     name: Run API Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     env:
       QACLOUD_BASE_URL: ${{ secrets.QACLOUD_BASE_URL }}
@@ -41,8 +44,6 @@ jobs:
         run: npm ci
 
       # Los tests de API no necesitan browser — solo el runner de Playwright
-      # No hace falta `npx playwright install`
-
       - name: Run Market API tests
         run: >
           npx playwright test
@@ -52,7 +53,6 @@ jobs:
           --workers=1
           --reporter=list
         # --workers=1 porque los tests de API comparten estado en el servidor
-        # (basket, productos) y la ejecución en paralelo puede generar interferencias
 
       - name: Upload Allure results
         if: always()
@@ -77,13 +77,12 @@ jobs:
     if: always()
 
     steps:
-      - uses: actions/checkout@v4
-
       - name: Download Allure results
         uses: actions/download-artifact@v4
         with:
           name: allure-results-api-${{ github.run_number }}
           path: reports/allure-results/
+        continue-on-error: true
 
       - name: Setup Java (requerido por Allure CLI)
         uses: actions/setup-java@v4
@@ -92,7 +91,7 @@ jobs:
           java-version: '21'
 
       - name: Install Allure CLI
-        run: npm install -g allure-commandline
+        run: npm install -g allure-commandline@2.38.1
 
       - name: Generate Allure report
         run: allure generate reports/allure-results -o reports/allure-report --clean

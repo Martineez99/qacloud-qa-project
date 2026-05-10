@@ -1,0 +1,244 @@
+# .github/workflows/nightly-full.yml
+#
+# Regresión nocturna completa. Se ejecuta cada noche a las 2AM UTC.
+# También disponible via workflow_dispatch para lanzamiento manual.
+#
+# Flujo serializado — misma API key para todo, no se puede paralelizar:
+#
+#   [api-tests] ──→ [e2e-full] ──→ [k6-performance] ──→ [allure-report → GitHub Pages]
+#
+# ⚠️  El cron de performance-tests.yml ha sido eliminado para evitar
+#     que K6 se ejecute dos veces en la misma noche. El schedule
+#     vive exclusivamente aquí.
+#
+# Resultados esperados en GitHub Pages:
+#   https://<org>.github.io/<repo>/
+#   (el deploy nocturno sobreescribe el de push→main, que es el comportamiento correcto)
+
+name: Nightly Full Regression
+
+on:
+  schedule:
+    - cron: '0 2 * * *'   # 2AM UTC todos los días
+
+  workflow_dispatch:       # lanzamiento manual desde GitHub Actions UI
+
+concurrency:
+  group: nightly-full
+  cancel-in-progress: false   # no cancelar: si ya corre una regresión nocturna, dejar que termine
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  # ── JOB 1: API Tests ─────────────────────────────────────────────
+  # Primer paso. Rápido (~3-5 min), sin browser.
+  # --workers=1 porque los tests comparten estado en el servidor.
+  api-tests:
+    name: API Tests — Market
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      QACLOUD_BASE_URL: ${{ secrets.QACLOUD_BASE_URL }}
+      QACLOUD_API_KEY:  ${{ secrets.QACLOUD_API_KEY }}
+      CI: true
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Market API tests
+        run: >
+          npx playwright test
+          --config=config/playwright.config.ts
+          --project=api-market
+          --project=api-market-contract
+          --workers=1
+
+      - name: Upload Allure results (API)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results-api-nightly-${{ github.run_number }}
+          path: reports/allure-results/
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Upload test results on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-api-nightly-${{ github.run_number }}
+          path: test-results/
+          retention-days: 7
+
+  # ── JOB 2: Full E2E ──────────────────────────────────────────────
+  # Necesita api-tests. El estado de datos queda conocido tras los API tests.
+  # if: always() → corre aunque api-tests haya fallado para tener reporte completo.
+  e2e-full:
+    name: Full E2E — Chromium
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: api-tests
+    if: always()
+
+    env:
+      QACLOUD_BASE_URL: ${{ secrets.QACLOUD_BASE_URL }}
+      QACLOUD_API_KEY:  ${{ secrets.QACLOUD_API_KEY }}
+      QACLOUD_USERNAME: ${{ secrets.QACLOUD_USERNAME }}
+      QACLOUD_PASSWORD: ${{ secrets.QACLOUD_PASSWORD }}
+      HEADLESS: true
+      CI: true
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run full E2E suite
+        run: >
+          npx playwright test
+          --config=config/playwright.config.ts
+          --project=smoke-login
+          --project=smoke-navigation
+          --project=e2e-market
+
+      - name: Upload Allure results (E2E)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results-e2e-nightly-${{ github.run_number }}
+          path: reports/allure-results/
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Upload test results (videos y traces)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-e2e-nightly-${{ github.run_number }}
+          path: test-results/
+          retention-days: 7
+
+  # ── JOB 3: K6 Performance ────────────────────────────────────────
+  # Necesita e2e-full. K6 con 50+ VUs comparte API key con los otros jobs;
+  # ejecutar en paralelo con E2E agotaría stock y generaría falsos negativos.
+  # Reset explícito antes de K6: el catálogo debe estar completo para que
+  # las requests sean representativas de carga real.
+  k6-performance:
+    name: Market Baseline Load Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: e2e-full
+    if: always()
+
+    env:
+      QACLOUD_BASE_URL: ${{ secrets.QACLOUD_BASE_URL }}
+      QACLOUD_API_KEY:  ${{ secrets.QACLOUD_API_KEY }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install K6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring \
+            --keyring /usr/share/keyrings/k6-archive-keyring.gpg \
+            --keyserver hkp://keyserver.ubuntu.com:80 \
+            --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" \
+            | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install k6
+
+      - name: Reset test data before load test
+        run: |
+          curl -s -o /dev/null -w "%{http_code}" \
+            -X POST "${{ secrets.QACLOUD_BASE_URL }}/api/reset" \
+            -H "Authorization: ${{ secrets.QACLOUD_API_KEY }}"
+
+      - name: Run Market Baseline Load Test
+        run: k6 run src/performance/scenarios/market-load.js
+
+      - name: Upload K6 results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: k6-results-nightly-${{ github.run_number }}
+          path: k6-results/
+          retention-days: 30
+
+  # ── JOB 4: Allure Report combinado → GitHub Pages ────────────────
+  # Descarga resultados de API + E2E, los fusiona y despliega.
+  # No depende de k6-performance: K6 no genera resultados en formato Allure.
+  # Se lanza en paralelo con K6 en cuanto e2e-full termina.
+  # if: always() → publica aunque algún job anterior tenga fallos.
+  allure-report:
+    name: Publish Combined Allure Report → GitHub Pages
+    runs-on: ubuntu-latest
+    needs: [api-tests, e2e-full]
+    if: always()
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Download Allure results — API
+        uses: actions/download-artifact@v4
+        with:
+          name: allure-results-api-nightly-${{ github.run_number }}
+          path: allure-results-merged/
+        continue-on-error: true
+
+      - name: Download Allure results — E2E
+        uses: actions/download-artifact@v4
+        with:
+          name: allure-results-e2e-nightly-${{ github.run_number }}
+          path: allure-results-merged/
+        continue-on-error: true
+
+      - name: Setup Java (requerido por Allure CLI)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Install Allure CLI
+        run: npm install -g allure-commandline@2.38.1
+
+      - name: Generate combined Allure report
+        run: allure generate allure-results-merged -o allure-report --clean
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: allure-report
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -72,6 +72,9 @@ jobs:
   # ── JOB 2: API Tests — solo en push a main ───────────────────────
   # Corre primero para evitar conflictos de estado con E2E.
   # --workers=1 porque los tests comparten estado en el servidor.
+  # ⚠️  Sin --reporter en CLI: el config ya define list + allure-playwright.
+  #     Pasar --reporter por CLI reemplaza TODOS los reporters del config,
+  #     lo que impide que allure-playwright escriba en reports/allure-results/.
   api-tests:
     name: API Tests — Market
     runs-on: ubuntu-latest
@@ -103,7 +106,6 @@ jobs:
           --project=api-market
           --project=api-market-contract
           --workers=1
-          --reporter=list
 
       - name: Upload Allure results (API)
         if: always()
@@ -111,6 +113,7 @@ jobs:
         with:
           name: allure-results-api-${{ github.run_number }}
           path: reports/allure-results/
+          if-no-files-found: warn
           retention-days: 30
 
       - name: Upload test results on failure
@@ -164,6 +167,7 @@ jobs:
         with:
           name: allure-results-e2e-${{ github.run_number }}
           path: reports/allure-results/
+          if-no-files-found: warn
           retention-days: 30
 
       - name: Upload test results (videos y traces)
@@ -193,7 +197,6 @@ jobs:
         with:
           name: allure-results-api-${{ github.run_number }}
           path: allure-results-merged/
-        # Si api-tests falló muy temprano y no subió artifact, continuar igualmente
         continue-on-error: true
 
       - name: Download Allure results — E2E
@@ -201,7 +204,6 @@ jobs:
         with:
           name: allure-results-e2e-${{ github.run_number }}
           path: allure-results-merged/
-        # Ambos artifacts se descargan en la misma carpeta → quedan fusionados
         continue-on-error: true
 
       - name: Install Allure CLI

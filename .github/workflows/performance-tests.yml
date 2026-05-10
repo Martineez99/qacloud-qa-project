@@ -1,20 +1,51 @@
+# .github/workflows/performance-tests.yml
+#
+# Triggers activos:
+#   · workflow_run (E2E Tests completado en main) → corre DESPUÉS de api+e2e
+#   · schedule (nightly 2AM UTC)                 → corre solo, sin dependencia
+#   · workflow_dispatch                           → lanzamiento manual
+#
+# ⚠️  NO usar push: branches: [main] directamente.
+#     K6 con 50+ VUs usa la misma API key que E2E y API tests.
+#     Ejecutar en paralelo agota stock, resetea catálogo y genera
+#     falsos negativos en ambas suites. workflow_run garantiza
+#     que E2E termina antes de que K6 empiece a martillear.
+
 name: Performance Tests
 
 on:
-  push:
+  # Se dispara cuando el workflow "E2E Tests" termina en main.
+  # types: [completed] → corre tanto si E2E pasó como si falló,
+  # para tener métricas de rendimiento independientemente del estado funcional.
+  workflow_run:
+    workflows: ["E2E Tests"]   # debe coincidir EXACTAMENTE con name: en e2e-tests.yml
     branches: [main]
+    types: [completed]
+
+  # Nightly: se lanza solo, sin esperar a E2E (no hay push que lo dispare)
   schedule:
-    - cron: '0 2 * * *'   # nightly 2AM UTC
-  workflow_dispatch:       # permite lanzarlo manualmente desde GitHub
+    - cron: '0 2 * * *'   # 2AM UTC
+
+  # Lanzamiento manual desde la UI de GitHub Actions
+  workflow_dispatch:
 
 jobs:
   k6-market-baseline:
     name: Market Baseline Load Test
     runs-on: ubuntu-latest
 
+    # En workflow_run: añadimos contexto del workflow padre en el nombre del job
+    # para identificar fácilmente a qué push corresponde esta ejecución de K6
+    env:
+      QACLOUD_BASE_URL: ${{ secrets.QACLOUD_BASE_URL }}
+      QACLOUD_API_KEY:  ${{ secrets.QACLOUD_API_KEY }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # En workflow_run el checkout por defecto usa el commit del workflow padre
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - name: Install K6
         run: |
@@ -28,10 +59,16 @@ jobs:
           sudo apt-get update
           sudo apt-get install k6
 
-      - name: Run Market Baseline
-        env:
-          QACLOUD_BASE_URL: ${{ secrets.QACLOUD_BASE_URL }}
-          QACLOUD_API_KEY:  ${{ secrets.QACLOUD_API_KEY }}
+      # Reset antes de K6: el estado del servidor es desconocido tras
+      # que E2E y API tests hayan modificado productos, basket y órdenes.
+      # K6 necesita catálogo completo para que sus requests sean representativos.
+      - name: Reset test data before load test
+        run: |
+          curl -s -o /dev/null -w "%{http_code}" \
+            -X POST "${{ secrets.QACLOUD_BASE_URL }}/api/reset" \
+            -H "Authorization: ${{ secrets.QACLOUD_API_KEY }}"
+
+      - name: Run Market Baseline Load Test
         run: k6 run src/performance/scenarios/market-load.js
 
       - name: Upload K6 results

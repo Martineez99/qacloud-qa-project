@@ -2,8 +2,11 @@
 #
 # Triggers activos:
 #   · workflow_run (E2E Tests completado en main) → corre DESPUÉS de api+e2e
-#   · schedule (nightly 2AM UTC)                 → corre solo, sin dependencia
 #   · workflow_dispatch                           → lanzamiento manual
+#
+# ⚠️  El schedule (cron nightly) ha sido eliminado de este archivo.
+#     La regresión nocturna completa (API + E2E + K6) vive en nightly-full.yml,
+#     que orquesta el orden correcto y evita que K6 se ejecute dos veces.
 #
 # ⚠️  NO usar push: branches: [main] directamente.
 #     K6 con 50+ VUs usa la misma API key que E2E y API tests.
@@ -21,10 +24,6 @@ on:
     workflows: ["E2E Tests"]   # debe coincidir EXACTAMENTE con name: en e2e-tests.yml
     branches: [main]
     types: [completed]
-
-  # Nightly: se lanza solo, sin esperar a E2E (no hay push que lo dispare)
-  schedule:
-    - cron: '0 2 * * *'   # 2AM UTC
 
   # Lanzamiento manual desde la UI de GitHub Actions
   workflow_dispatch:

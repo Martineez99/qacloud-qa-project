@@ -1,6 +1,6 @@
-# 🧪 QA Cloud — Automation Project
+# QA Cloud — Test Automation Suite
 
-> A senior-level test automation suite built against [qacloud.dev](https://www.qacloud.dev/) — a purpose-built platform for QA practice. The project covers end-to-end UI testing, REST API testing, contract validation, and performance testing, all wired into a full CI/CD pipeline with live Allure reporting.
+> A senior-level test automation suite built against [qacloud.dev](https://www.qacloud.dev/) — a purpose-built platform for QA practice. The project covers end-to-end UI testing, REST API testing, contract validation, and performance testing, all wired into a full CI/CD pipeline with live Allure reporting published to GitHub Pages.
 
 [![E2E Tests](https://github.com/Martineez99/qacloud-qa-project/actions/workflows/e2e-tests.yml/badge.svg)](https://github.com/Martineez99/qacloud-qa-project/actions/workflows/e2e-tests.yml)
 [![API Tests](https://github.com/Martineez99/qacloud-qa-project/actions/workflows/api-tests.yml/badge.svg)](https://github.com/Martineez99/qacloud-qa-project/actions/workflows/api-tests.yml)
@@ -13,41 +13,33 @@
 
 ---
 
-## 📌 What This Project Is
+## What This Project Demonstrates
 
-This is not a tutorial project. It is a **real test automation suite** built incrementally, following the same practices and standards a QA team would apply in a professional environment:
+This is not a tutorial or a course exercise. It is a **real-world test automation suite** built incrementally, following the same standards a professional QA team would apply:
 
-- Tests are organized by **layer** (E2E / API / Performance) and by **application domain**
-- The **Page Object Model** is implemented with a shared `BasePage` and typed locators
-- API tests include both **happy path and edge case coverage**, plus **JSON Schema contract validation**
-- Performance tests use **K6 with custom metrics and SLA thresholds**, not just basic load scripts
-- The CI/CD pipeline has **separate workflows** per test type, a PR-gate pipeline, and a scheduled nightly run
-- **Allure reports** are published automatically to GitHub Pages after every pipeline run
-
----
-
-## 📖 Documentation
-
-| Document | Description |
-|----------|-------------|
-| **This README** | Setup, commands and contribution guide |
-| [`QA_PROJECT_ARCHITECTURE.md`](./docs/QA_PROJECT_ARCHITECTURE.md) | Full architecture, standards, testing strategy and roadmap |
+- **Layered testing strategy** — E2E, API, contract, and performance tests are kept separate, each with its own pipeline, runner, and reporting scope.
+- **Page Object Model** with a typed `BasePage`, shared fixtures, and domain-specific page classes. No duplicated locators, no raw selectors in test files.
+- **API test design** that goes beyond happy paths — stock validation edge cases, price snapshot integrity, cascade delete behavior, and basket merge logic all have dedicated coverage.
+- **JSON Schema contract testing** to catch breaking API changes before they reach UI tests.
+- **K6 performance tests** with custom metrics, SLA thresholds, and staged load profiles — not just a default `k6 run`.
+- **CI/CD pipeline** with separate workflows per layer, a PR gate, and a scheduled nightly full regression that publishes an Allure report to GitHub Pages automatically.
 
 ---
 
-## 🎯 Applications Under Test
+## Tech Stack
 
-| App | Path | Test types |
-|-----|------|------------|
-| **Market** | `/market/*` | E2E · API · Contract · Performance |
-| **Hotel** | `/hotel/*` | E2E · API · Chaos *(in progress)* |
-| **Bank** | `/bank/*` | API · Performance *(in progress)* |
-| **TaskTracker** | `/tasks/*` | E2E · RBAC *(planned)* |
-| **UI Sandbox** | `/sandbox/*` | Page Object base library |
+| Tool | Version | Role |
+|------|---------|------|
+| [Playwright](https://playwright.dev) | `^1.44` | E2E tests, API tests, browser automation |
+| TypeScript | `^5.x` | Typed test code across the entire suite |
+| [K6](https://k6.io) | latest | Load, stress, and spike testing |
+| [Allure](https://allurereport.org) | `^3.x` | Unified test reporting |
+| GitHub Actions | — | CI/CD pipelines, scheduled runs, Pages publish |
+| Node.js | `>= 20 LTS` | Runtime |
 
 ---
 
-## ✅ Current Coverage
+## Coverage
 
 ### E2E — Playwright
 
@@ -58,7 +50,7 @@ This is not a tutorial project. It is a **real test automation suite** built inc
 | Market — Products tab | `e2e/market/products.spec.ts` | ✅ Done |
 | Market — Basket flow | `e2e/market/basket.spec.ts` | ✅ Done |
 
-### API — Playwright (request context)
+### API — Playwright request context
 
 | Suite | File | Status |
 |-------|------|--------|
@@ -83,64 +75,49 @@ This is not a tutorial project. It is a **real test automation suite** built inc
 | `e2e-tests.yml` | Push to `develop`, PR | ✅ Active |
 | `api-tests.yml` | Push to `develop`, PR | ✅ Active |
 | `performance-tests.yml` | Push to `main`, scheduled | ✅ Active |
-| `nightly-full.yml` | Scheduled — 2AM UTC | ✅ Active |
+| `nightly-full.yml` | Scheduled — 2 AM UTC | ✅ Active |
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 qacloud-qa-project/
 │
-├── .github/
-│   └── workflows/
-│       ├── ci-pr-main.yml          # PR gate: runs on every pull request
-│       ├── e2e-tests.yml           # E2E pipeline with browser matrix
-│       ├── api-tests.yml           # API pipeline, runs in parallel by module
-│       ├── performance-tests.yml   # K6 performance pipeline
-│       └── nightly-full.yml        # Full regression + Allure publish
+├── .github/workflows/          # CI/CD pipelines (E2E, API, Performance, Nightly)
 │
 ├── src/
-│   ├── e2e/
-│   │   ├── smoke/                  # Login + navigation smoke tests
-│   │   └── market/                 # Products and basket E2E flows
-│   │
-│   ├── api/
-│   │   ├── market/                 # Products, basket, orders — happy + edge cases
-│   │   └── contracts/              # JSON Schema contract tests
-│   │
-│   ├── performance/
-│   │   ├── scenarios/              # K6 load scenarios
-│   │   ├── thresholds/             # SLA configuration (p95, error rate)
-│   │   └── data/                   # Test data for K6 VUs
-│   │
-│   ├── pages/                      # Page Object Model
-│   │   ├── common/                 # BasePage, NavigationComponent
-│   │   └── market/                 # MarketPage, BasketPage, OrdersPage
-│   │
-│   ├── fixtures/                   # Playwright fixtures and auth setup
-│   ├── utils/                      # API client, data factory, custom assertions
-│   └── types/                      # TypeScript interfaces for all domains
+│   ├── e2e/                    # End-to-end tests (smoke + market)
+│   ├── api/                    # API + contract tests
+│   │   ├── market/             # Products, basket, orders — happy path + edge cases
+│   │   └── contracts/          # JSON Schema contract validation
+│   ├── performance/            # K6 load scenarios, SLA thresholds, test data
+│   ├── pages/                  # Page Object Model (BasePage + domain pages)
+│   │   ├── common/             # BasePage, NavigationComponent
+│   │   └── market/             # MarketPage, BasketPage, OrdersPage
+│   ├── fixtures/               # Playwright fixtures and auth setup
+│   ├── utils/                  # API client, data factory, custom assertions
+│   └── types/                  # TypeScript interfaces for all domains
 │
 ├── config/
-│   └── playwright.config.ts        # Multi-project config (E2E + API + setups)
+│   └── playwright.config.ts    # Multi-project config (E2E + API + setups)
 │
-├── test-data/                      # Static test data (JSON)
-├── scripts/                        # PowerShell utility scripts
-├── reports/                        # Generated automatically — gitignored
-├── .env.example                    # Environment variables template
-└── package.json
+├── test-data/                  # Static test data (JSON)
+├── scripts/                    # PowerShell utility scripts
+└── .env.example                # Environment variables template
 ```
 
 ---
 
-## ⚙️ Prerequisites
+## Setup
+
+### Prerequisites
 
 ```powershell
 # Node.js >= 20 LTS
 node --version
 
-# Install K6 (Windows)
+# Install K6
 winget install k6 --source winget
 
 # Install Java 21 (required by Allure CLI)
@@ -150,9 +127,7 @@ winget install Microsoft.OpenJDK.21
 npm install -g allure-commandline
 ```
 
----
-
-## 🚀 Setup
+### Installation
 
 ```powershell
 # 1. Clone the repository
@@ -165,12 +140,12 @@ npm install
 # 3. Install Playwright browsers
 npx playwright install --with-deps chromium firefox
 
-# 4. Configure environment variables
+# 4. Set up environment variables
 Copy-Item .env.example .env
 notepad .env   # Fill in your qacloud.dev credentials
 ```
 
-### Environment Variables (`.env`)
+### Environment Variables
 
 ```env
 QACLOUD_BASE_URL=https://www.qacloud.dev
@@ -186,136 +161,119 @@ K6_VUS=50
 K6_DURATION=5m
 ```
 
-> ⚠️ `.env` is listed in `.gitignore`. **Never commit it.** Use `.env.example` as the template.
+> ⚠️ `.env` is gitignored. Never commit credentials. Use `.env.example` as the template.
 
 ---
 
-## ▶️ Running Tests
+## Running Tests
 
-### E2E (Playwright)
+### E2E
 
 ```powershell
-# All E2E tests
+# Full E2E suite
 npm run test:e2e
 
 # Smoke tests only (P0)
 npm run test:smoke
 
-# Specific suite
+# Market suite
 npm run test:e2e:market
 
-# With visible browser
+# Headed mode for debugging
 npx playwright test src/e2e/market/ --headed --slowMo=500
 
-# Debug a single test
+# Debug a single spec
 npx playwright test src/e2e/market/basket.spec.ts --debug
 
-# Parallel execution with sharding
+# Parallel execution via sharding
 npx playwright test --shard=1/3
 npx playwright test --shard=2/3
 npx playwright test --shard=3/3
 ```
 
-### API Tests
+### API
 
 ```powershell
-# All API tests
+# Full API suite
 npm run test:api
 
-# With verbose output
+# Verbose output
 npx playwright test src/api/ --reporter=list
 ```
 
-### Performance (K6)
+### Performance
 
 ```powershell
-# Market baseline load test
+# Market baseline
 npm run test:perf
 
-# Custom run
+# Custom parameters
 k6 run --vus 100 --duration 10m src/performance/scenarios/market-load.js
 ```
 
 ---
 
-## 📊 Allure Reporting
+## Reporting
 
-Reports are published automatically to **GitHub Pages** after every nightly run and every merge to `main`.
+Allure reports are **published automatically to GitHub Pages** after every nightly run and every merge to `main`.
 
 🔗 **[View Live Allure Report](https://martineez99.github.io/qacloud-qa-project/)**
 
-To generate and view the report locally:
+Reports include results grouped by Epic → Feature → Story, screenshots and videos on failure, environment metadata, and trend graphs across pipeline runs.
 
 ```powershell
-# Generate from results
+# Generate report locally from raw results
 npm run report:generate
 
-# Open in browser
+# Open generated report in browser
 npm run report:open
 
-# Serve directly from raw results (useful while tests are running)
+# Serve directly while tests are running
 npm run report:serve
 ```
 
-Reports include test results grouped by Epic → Feature → Story, screenshots and videos on failure, environment metadata, and trend graphs across pipeline runs.
-
 ---
 
-## 🔄 Git Workflow
+## Git Workflow
 
-This project follows **GitHub Flow** with Conventional Commits.
-
-### Branch naming
+This project follows **GitHub Flow** with [Conventional Commits](https://www.conventionalcommits.org).
 
 ```
-feature/market-basket-e2e-tests
-fix/hotel-booking-flaky-test
-refactor/page-objects-base-class
-chore/update-playwright-version
-perf/bank-load-test-thresholds
+main        ← production, always green
+  └── develop  ← continuous integration
+        ├── feature/
+        ├── fix/
+        ├── refactor/
+        └── chore/
 ```
 
-### Commit format
+**Branch naming:** `feature/market-basket-e2e-tests`, `fix/hotel-booking-flaky-test`, `perf/bank-load-test-thresholds`
+
+**Commit format:**
 
 ```powershell
 git commit -m "test(market): add basket quantity validation edge cases"
 git commit -m "feat(hotel): implement booking lifecycle E2E flow"
-git commit -m "fix(bank): resolve flaky transfer test due to race condition"
-git commit -m "perf(market): add K6 baseline with SLA thresholds"
 git commit -m "ci: add nightly regression pipeline with GitHub Pages publish"
 ```
 
 **Allowed types:** `feat` · `test` · `fix` · `refactor` · `perf` · `chore` · `ci` · `docs`
 
-### Pull Request checklist
+---
 
-Before opening a PR toward `develop`:
+## Documentation
 
-- [ ] Tests pass in CI (green pipeline)
-- [ ] No conflicts with `develop`
-- [ ] Clear description with context for the change
-- [ ] Screenshots / videos attached if there are UI changes
-- [ ] Allure report attached if relevant
-
-```powershell
-# Sync with develop before pushing
-git fetch origin
-git rebase origin/develop
-git push origin feature/your-branch-name
-```
-
-### Tags and releases
-
-```powershell
-git tag -a v1.0.0 -m "Initial suite: Market E2E + API + Performance"
-git push origin --tags
-```
+| Document | Description |
+|----------|-------------|
+| **README** *(this file)* | Project overview, setup, and usage |
+| [`docs/QA_PROJECT_ARCHITECTURE.md`](./docs/QA_PROJECT_ARCHITECTURE.md) | Full architecture, testing strategy, standards, and roadmap |
+| [`docs/MARKET_APP_CONTEXT.md`](./docs/MARKET_APP_CONTEXT.md) | Application under test — endpoints, test cases, and QA context |
 
 ---
 
-## 🔐 GitHub Actions Secrets
+## GitHub Actions Secrets
 
-Configure these in **Settings → Secrets and variables → Actions** of your repository:
+Configure in **Settings → Secrets and variables → Actions**:
 
 | Secret | Description |
 |--------|-------------|
@@ -326,27 +284,9 @@ Configure these in **Settings → Secrets and variables → Actions** of your re
 
 ---
 
-## 🛠️ Other Useful Commands
+## Roadmap
 
-```powershell
-# Inspect a trace from a failed test
-npx playwright show-trace reports/traces/trace.zip
-
-# Lint the codebase
-npm run lint
-
-# Format code
-npm run format
-
-# Reset test data on the platform
-.\scripts\reset-test-data.ps1
-```
-
----
-
-## 🗺️ Roadmap
-
-The project is built iteratively. Market app coverage is complete. Next phases:
+Sprint 2 (Market app) is complete. Next phases:
 
 ```
 Sprint 3 — Hotel + Bank
@@ -364,7 +304,25 @@ Sprint 4 — Advanced Patterns
 
 ---
 
-## 📎 Resources
+## Other Useful Commands
+
+```powershell
+# Inspect a trace from a failed test
+npx playwright show-trace reports/traces/trace.zip
+
+# Lint the codebase
+npm run lint
+
+# Format code
+npm run format
+
+# Reset test data on the platform
+.\scripts\reset-test-data.ps1
+```
+
+---
+
+## Resources
 
 | Resource | Link |
 |----------|------|
@@ -374,9 +332,7 @@ Sprint 4 — Advanced Patterns
 | Playwright Docs | [playwright.dev](https://playwright.dev/docs/intro) |
 | K6 Docs | [k6.io/docs](https://k6.io/docs/) |
 | Allure Playwright | [allurereport.org](https://allurereport.org/docs/playwright/) |
-| Conventional Commits | [conventionalcommits.org](https://www.conventionalcommits.org) |
 
 ---
 
-*Built step by step — prioritizing quality over quantity.*  
-*Stack: Playwright · TypeScript · K6 · Allure · GitHub Actions · Windows PowerShell*
+*Stack: Playwright · TypeScript · K6 · Allure · GitHub Actions*

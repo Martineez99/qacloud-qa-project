@@ -584,7 +584,7 @@ Reset:     200
 ### Sprint 3 — Hotel + Bank 🔲 In Progress
 
 ```
-[ ] Page Objects: HotelPage, BookingPage, BankPage
+[✅] Page Objects: HotelPage, BookingPage, BankPage
 [ ] E2E tests: Hotel booking lifecycle
 [ ] API tests: Hotel — rooms, bookings, reviews
 [ ] API tests: Bank — accounts, transfers, edge cases

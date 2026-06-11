@@ -2,6 +2,8 @@ import { test as base } from '@playwright/test';
 import { LoginPage } from '../pages/common/LoginPage';
 import { NavigationComponent } from '../pages/common/NavigationComponent';
 import { MarketPage } from '@pages/market/MarketPage';
+import { HotelPage } from '@pages/hotel/HotelPage';
+
 
 // Definimos qué fixtures exponemos
 type BaseFixtures = {
@@ -9,6 +11,7 @@ type BaseFixtures = {
   nav: NavigationComponent;
   authenticatedPage: LoginPage;
   marketPage: MarketPage;
+  hotelPage: HotelPage;
 };
 
 export const test = base.extend<BaseFixtures>({
@@ -36,6 +39,13 @@ export const test = base.extend<BaseFixtures>({
     await page.waitForLoadState('networkidle');
     const marketPage = new MarketPage(page);
     await use(marketPage);
+  },
+
+  hotelPage: async ({ page }, use) => {
+    await page.goto('/hotel.html');
+    await page.waitForLoadState('networkidle');
+    const hotelPage = new HotelPage(page);
+    await use(hotelPage);
   },
 });
 

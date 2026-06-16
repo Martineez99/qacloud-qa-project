@@ -84,8 +84,7 @@ export class HotelPage extends BasePage {
    */
   async goToBookings(): Promise<void> {
     await this.tabBookings.click();
-    // Esperamos al contenedor de la tabla, no al botón de la tab
-    await this.waitForVisible(this.page.locator('#bookingsBody'));
+    await this.waitForVisible(this.page.locator('#bookingForm'));
     await this.page.waitForLoadState('networkidle');
   }
 

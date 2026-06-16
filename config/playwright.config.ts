@@ -13,7 +13,7 @@ const apiHeaders = {
 };
 
 export default defineConfig({
-  testDir: path.resolve(__dirname, '../src'),
+  testDir: '../src',
   timeout: Number(process.env.TEST_TIMEOUT) || 30000,
   expect: { timeout: 5000 },
   fullyParallel: true,
@@ -63,7 +63,7 @@ export default defineConfig({
     },
     {
       name: 'setup-market',
-      testMatch: '**/fixtures/auth.setup.ts',
+      testMatch: '**/fixtures/market.setup.ts',
     },
     {
       name: 'setup-hotel',

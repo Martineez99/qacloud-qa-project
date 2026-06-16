@@ -39,90 +39,6 @@ const GUEST = {
   phone: '+1234567890',
 };
 
-// ── Helper: request context para llamadas API en beforeAll/afterAll ───────────
-
-function apiHeaders() {
-  return { Authorization: process.env.QACLOUD_API_KEY ?? '' };
-}
-
-// ── Helper: crea una booking via API y devuelve su ID y confirmation_number ──
-
-async function createBookingViaApi(page: any): Promise<{ id: string; confirmation_number: string; property_id: string }> {
-  const baseUrl = process.env.QACLOUD_BASE_URL ?? '';
-
-  // 1. Obtener properties para sacar el ID de Grand Plaza Hotel
-  const propertiesRes = await page.request.get(
-    `${baseUrl}/api/hotel/properties`,
-    { headers: apiHeaders() }
-  );
-  const properties = await propertiesRes.json();
-  const property = properties.find((p: any) => p.name === 'Grand Plaza Hotel');
-
-  // 2. Obtener room types para sacar el ID de Standard Double Room
-  const roomTypesRes = await page.request.get(
-    `${baseUrl}/api/hotel/room-types`,
-    { headers: apiHeaders() }
-  );
-  const roomTypes = await roomTypesRes.json();
-  const roomType = roomTypes.find(
-    (rt: any) => rt.property_id === property.id && rt.name === 'Standard Double Room'
-  );
-
-  // 3. Crear la booking
-  const bookingRes = await page.request.post(
-    `${baseUrl}/api/hotel/bookings`,
-    {
-      headers: { ...apiHeaders(), 'Content-Type': 'application/json' },
-      data: {
-        property_id:    property.id,
-        room_type_id:   roomType.id,
-        guest_name:     GUEST.name,
-        guest_email:    GUEST.email,
-        guest_phone:    GUEST.phone,
-        check_in_date:  CHECK_IN_DATE,
-        check_out_date: CHECK_OUT_DATE,
-        num_guests:     2,
-        num_rooms:      1,
-      },
-    }
-  );
-  const booking = await bookingRes.json();
-  return {
-    id:                  booking.id,
-    confirmation_number: booking.confirmation_number,
-    property_id:         property.id,
-  };
-}
-
-// ── Helper: lleva una booking a CHECKED_OUT via API ──────────────────────────
-
-async function driveToCheckedOut(page: any, bookingId: string): Promise<void> {
-  const baseUrl = process.env.QACLOUD_BASE_URL ?? '';
-  const url = `${baseUrl}/api/hotel/bookings/${bookingId}`;
-  const headers = { ...apiHeaders(), 'Content-Type': 'application/json' };
-
-  for (const status of ['CONFIRMED', 'CHECKED_IN', 'CHECKED_OUT']) {
-    await page.request.put(url, { headers, data: { status } });
-  }
-}
-
-// ── Helper: elimina todas las bookings via API (cleanup post-suite) ───────────
-
-async function deleteAllBookings(page: any): Promise<void> {
-  const baseUrl = process.env.QACLOUD_BASE_URL ?? '';
-  const res = await page.request.get(
-    `${baseUrl}/api/hotel/bookings`,
-    { headers: apiHeaders() }
-  );
-  const bookings = await res.json();
-  for (const booking of bookings) {
-    await page.request.delete(
-      `${baseUrl}/api/hotel/bookings/${booking.id}`,
-      { headers: apiHeaders() }
-    );
-  }
-}
-
 // ═════════════════════════════════════════════════════════════════════════════
 //  SUITE PRINCIPAL
 // ═════════════════════════════════════════════════════════════════════════════
@@ -444,3 +360,89 @@ test.describe('Hotel - Booking Lifecycle', () => {
   );
 
 });
+
+// ── Helper: request context para llamadas API en beforeAll/afterAll ───────────
+
+function apiHeaders() {
+  return { Authorization: process.env.QACLOUD_API_KEY ?? '' };
+}
+
+// ── Helper: crea una booking via API y devuelve su ID y confirmation_number ──
+
+async function createBookingViaApi(page: any): Promise<{ id: string; confirmation_number: string; property_id: string }> {
+  const baseUrl = process.env.QACLOUD_BASE_URL ?? '';
+
+  // 1. Obtener properties para sacar el ID de Grand Plaza Hotel
+  const propertiesRes = await page.request.get(
+    `${baseUrl}/api/hotel/properties`,
+    { headers: apiHeaders() }
+  );
+  const properties = await propertiesRes.json();
+  const property = properties.find((p: any) => p.name === 'Grand Plaza Hotel');
+
+  // 2. Obtener room types para sacar el ID de Standard Double Room
+  const roomTypesRes = await page.request.get(
+    `${baseUrl}/api/hotel/room-types`,
+    { headers: apiHeaders() }
+  );
+  const roomTypes = await roomTypesRes.json();
+  const roomType = roomTypes.find(
+    (rt: any) => rt.property_id === property.id && rt.name === 'Standard Double Room'
+  );
+
+  // 3. Crear la booking
+  const bookingRes = await page.request.post(
+    `${baseUrl}/api/hotel/bookings`,
+    {
+      headers: { ...apiHeaders(), 'Content-Type': 'application/json' },
+      data: {
+        property_id:    property.id,
+        room_type_id:   roomType.id,
+        guest_name:     GUEST.name,
+        guest_email:    GUEST.email,
+        guest_phone:    GUEST.phone,
+        check_in_date:  CHECK_IN_DATE,
+        check_out_date: CHECK_OUT_DATE,
+        num_guests:     2,
+        num_rooms:      1,
+      },
+    }
+  );
+  const booking = await bookingRes.json();
+  return {
+    id:                  booking.id,
+    confirmation_number: booking.confirmation_number,
+    property_id:         property.id,
+  };
+}
+
+// ── Helper: lleva una booking a CHECKED_OUT via API ──────────────────────────
+
+async function driveToCheckedOut(page: any, bookingId: string): Promise<void> {
+  const baseUrl = process.env.QACLOUD_BASE_URL ?? '';
+  const url = `${baseUrl}/api/hotel/bookings/${bookingId}`;
+  const headers = { ...apiHeaders(), 'Content-Type': 'application/json' };
+
+  for (const status of ['CONFIRMED', 'CHECKED_IN', 'CHECKED_OUT']) {
+    await page.request.put(url, { headers, data: { status } });
+  }
+}
+
+// ── Helper: elimina todas las bookings via API (cleanup post-suite) ───────────
+
+async function deleteAllBookings(page: any): Promise<void> {
+  const baseUrl = process.env.QACLOUD_BASE_URL ?? '';
+  const res = await page.request.get(
+    `${baseUrl}/api/hotel/bookings`,
+    { headers: apiHeaders() }
+  );
+  const bookings = await res.json();
+  for (const booking of bookings) {
+    await page.request.delete(
+      `${baseUrl}/api/hotel/bookings/${booking.id}`,
+      { headers: apiHeaders() }
+    );
+  }
+}
+
+

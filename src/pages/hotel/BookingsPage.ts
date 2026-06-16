@@ -219,8 +219,17 @@ export class BookingsPage extends BasePage {
    * Envía el formulario de creación de booking.
    */
   async submitBookingForm(): Promise<void> {
+    const rowsBefore = await this.tableRows.count();
     await this.submitButton.click();
-    await this.waitForPageLoad();
+    // Esperamos a que aparezca al menos una fila nueva en la tabla
+    await this.page.waitForFunction(
+      (count) => {
+        const rows = document.querySelectorAll('#bookingsBody tr');
+        return rows.length > count;
+      },
+      rowsBefore,
+      { timeout: 15_000 }
+    );
   }
 
   /**

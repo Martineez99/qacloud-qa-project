@@ -18,6 +18,14 @@ import {
   AddToBasketPayload,
   CreateProductPayload,
 } from '../types/market.types';
+import {
+  Property,
+  RoomType,
+  Booking,
+  BookingStatus,
+  CreateBookingPayload,
+  UpdateBookingPayload,
+} from '../types/hotel.types';
 
 export class ApiClient {
   private readonly baseUrl: string;
@@ -200,6 +208,125 @@ export class ApiClient {
     const response = await this.get<Order[] | { orders: Order[] }>('/api/orders');
     if (!response.ok) throw new Error(`getOrders() falló: ${response.status}`);
     return Array.isArray(response.body) ? response.body : response.body.orders;
+  }
+
+
+// ══════════════════════════════════════════════════════════════════
+//  MÉTODOS DE DOMINIO — HOTEL
+//  Añade esta sección en api-client.ts justo después de getOrders()
+//  y antes de los helpers privados (url, headers, parse).
+// ══════════════════════════════════════════════════════════════════
+
+  /**
+   * Resetea el estado del Hotel para el usuario actual.
+   * Restaura las 5 properties y 14 room types seed.
+   * NO afecta a bookings ni reviews.
+   */
+  async hotelReset(): Promise<void> {
+    const response = await this.post<void>('/api/hotel/reset');
+    if (!response.ok) {
+      throw new Error(`[ApiClient] hotelReset() falló con status ${response.status}`);
+    }
+  }
+
+  /**
+   * Devuelve todas las properties del usuario.
+   */
+  async getProperties(): Promise<Property[]> {
+    const response = await this.get<Property[]>('/api/hotel/properties');
+    if (!response.ok) throw new Error(`getProperties() falló: ${response.status}`);
+    return response.body;
+  }
+
+  /**
+   * Devuelve todos los room types del usuario.
+   */
+  async getRoomTypes(): Promise<RoomType[]> {
+    const response = await this.get<RoomType[]>('/api/hotel/room-types');
+    if (!response.ok) throw new Error(`getRoomTypes() falló: ${response.status}`);
+    return response.body;
+  }
+
+  /**
+   * Busca una property por nombre exacto entre las seed data.
+   * Útil en beforeAll para obtener el ID sin hardcodearlo.
+   */
+  async getPropertyByName(name: string): Promise<Property> {
+    const properties = await this.getProperties();
+    const found = properties.find(p => p.name === name);
+    if (!found) {
+      throw new Error(`[ApiClient] Property "${name}" no encontrada. ¿Hiciste hotelReset()?`);
+    }
+    return found;
+  }
+
+  /**
+   * Busca un room type por nombre dentro de una property concreta.
+   */
+  async getRoomTypeByName(propertyId: string, roomTypeName: string): Promise<RoomType> {
+    const roomTypes = await this.getRoomTypes();
+    const found = roomTypes.find(
+      rt => rt.property_id === propertyId && rt.name === roomTypeName
+    );
+    if (!found) {
+      throw new Error(`[ApiClient] RoomType "${roomTypeName}" no encontrado en property ${propertyId}`);
+    }
+    return found;
+  }
+
+  /**
+   * Crea una booking y la devuelve.
+   */
+  async createBooking(payload: CreateBookingPayload): Promise<Booking> {
+    const response = await this.post<Booking>('/api/hotel/bookings', { data: payload });
+    if (!response.ok) {
+      throw new Error(`createBooking() falló: ${response.status} — ${JSON.stringify(response.body)}`);
+    }
+    return response.body;
+  }
+
+  /**
+   * Actualiza el status de una booking.
+   * Si el status es CANCELLED, cancellation_reason es obligatorio.
+   */
+  async updateBookingStatus(bookingId: string, payload: UpdateBookingPayload): Promise<Booking> {
+    const response = await this.put<Booking>(`/api/hotel/bookings/${bookingId}`, { data: payload });
+    if (!response.ok) {
+      throw new Error(`updateBookingStatus() falló: ${response.status} — ${JSON.stringify(response.body)}`);
+    }
+    return response.body;
+  }
+
+  /**
+   * Método conveniente: lleva una booking al status CHECKED_OUT
+   * recorriendo todo el lifecycle (PENDING→CONFIRMED→CHECKED_IN→CHECKED_OUT).
+   * Útil en beforeAll de tests que necesitan una booking ya completada
+   * (ej: para poder crear una review).
+   */
+  async driveBookingToCheckedOut(bookingId: string): Promise<Booking> {
+    await this.updateBookingStatus(bookingId, { status: 'CONFIRMED' });
+    await this.updateBookingStatus(bookingId, { status: 'CHECKED_IN' });
+    return this.updateBookingStatus(bookingId, { status: 'CHECKED_OUT' });
+  }
+
+  /**
+   * Elimina una booking por ID.
+   */
+  async deleteBooking(bookingId: string): Promise<void> {
+    const response = await this.delete<void>(`/api/hotel/bookings/${bookingId}`);
+    if (!response.ok) {
+      throw new Error(`deleteBooking() falló: ${response.status}`);
+    }
+  }
+
+  /**
+   * Devuelve todas las bookings, opcionalmente filtradas por status.
+   */
+  async getBookings(status?: BookingStatus): Promise<Booking[]> {
+    const params = status ? { status } : undefined;
+    const response = await this.get<Booking[]>('/api/hotel/bookings', { params });
+    if (!response.ok) throw new Error(`getBookings() falló: ${response.status}`);
+    return response.body;
   }
 
   // ══════════════════════════════════════════════════════════════════

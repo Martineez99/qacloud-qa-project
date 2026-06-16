@@ -13,7 +13,7 @@ const apiHeaders = {
 };
 
 export default defineConfig({
-  testDir: '../src',
+  testDir: path.resolve(__dirname, '../src'),
   timeout: Number(process.env.TEST_TIMEOUT) || 30000,
   expect: { timeout: 5000 },
   fullyParallel: true,
@@ -65,6 +65,10 @@ export default defineConfig({
       name: 'setup-market',
       testMatch: '**/fixtures/auth.setup.ts',
     },
+    {
+      name: 'setup-hotel',
+      testMatch: '**/fixtures/hotel.setup.ts',
+    },
 
     // ── Smoke login: SIN sesión — prueba el formulario de login ───────────────
     {
@@ -91,6 +95,17 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         storageState: '.auth/market.json',
+      },
+    },
+
+    // ── Hotel E2E: sesión de Hotel app ────────────────────────────────
+    {
+      name: 'e2e-hotel',
+      testMatch: '**/e2e/hotel/**/*.spec.ts',
+      dependencies: ['setup-hotel'],
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: '.auth/hotel.json',
       },
     },
 

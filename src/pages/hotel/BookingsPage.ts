@@ -189,7 +189,11 @@ export class BookingsPage extends BasePage {
    * Debe llamarse DESPUÉS de selectProperty.
    */
   async selectRoomTypeByName(roomTypeName: string): Promise<void> {
-    await this.roomTypeSelect.selectOption({ label: roomTypeName });
+    // Las opciones incluyen el precio: "Standard Double Room - $220.00/night"
+    // Seleccionamos por valor parcial filtrando la opción que contiene el nombre
+    const option = this.roomTypeSelect.locator('option', { hasText: roomTypeName });
+    const value = await option.getAttribute('value');
+    await this.roomTypeSelect.selectOption(value ?? '');
   }
 
   /**

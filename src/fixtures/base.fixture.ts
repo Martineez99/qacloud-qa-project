@@ -41,6 +41,7 @@ export const test = base.extend<BaseFixtures>({
     await use(marketPage);
   },
 
+  // ── Hotel: navega a /hotel.html ────────────────────
   hotelPage: async ({ page }, use) => {
     await page.goto('/hotel.html');
     await page.waitForLoadState('networkidle');

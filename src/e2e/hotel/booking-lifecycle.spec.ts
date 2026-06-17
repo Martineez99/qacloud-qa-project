@@ -296,7 +296,7 @@ test.describe('Hotel - Booking Lifecycle', () => {
             guest_phone:    '+9876543210',
             check_in_date:  CHECK_IN_DATE,
             check_out_date: CHECK_OUT_DATE,
-            num_guests:     1,
+            number_of_guests:     1,
           },
         }
       );
@@ -396,19 +396,23 @@ async function createBookingViaApi(page: any): Promise<{ id: string; confirmatio
     {
       headers: { ...apiHeaders(), 'Content-Type': 'application/json' },
       data: {
-        property_id:    property.id,
-        room_type_id:   roomType.id,
-        guest_name:     GUEST.name,
-        guest_email:    GUEST.email,
-        guest_phone:    GUEST.phone,
-        check_in_date:  CHECK_IN_DATE,
-        check_out_date: CHECK_OUT_DATE,
-        num_guests:     2,
-        num_rooms:      1,
+        property_id:      property.id,
+        room_type_id:     roomType.id,
+        guest_name:       GUEST.name,
+        guest_email:      GUEST.email,
+        guest_phone:      GUEST.phone,
+        check_in_date:    CHECK_IN_DATE,
+        check_out_date:   CHECK_OUT_DATE,
+        number_of_guests: 2,      
+        number_of_rooms:  1,      
       },
     }
   );
   const booking = await bookingRes.json();
+  console.log('STATUS:', bookingRes.status());
+  console.log('BODY:', JSON.stringify(booking, null, 2));
+  console.log('PROPERTY:', JSON.stringify(property, null, 2));
+  console.log('ROOM TYPE:', JSON.stringify(roomType, null, 2));
   return {
     id:                  booking.id,
     confirmation_number: booking.confirmation_number,

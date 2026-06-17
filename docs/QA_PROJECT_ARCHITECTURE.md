@@ -585,7 +585,7 @@ Reset:     200
 
 ```
 [✅] Page Objects: HotelPage, BookingPage, BankPage
-[ ] E2E tests: Hotel booking lifecycle
+[✅] E2E tests: Hotel booking lifecycle
 [ ] API tests: Hotel — rooms, bookings, reviews
 [ ] API tests: Bank — accounts, transfers, edge cases
 [ ] K6: Hotel spike test + Bank stress test

@@ -84,7 +84,8 @@ export class HotelPage extends BasePage {
    */
   async goToBookings(): Promise<void> {
     await this.tabBookings.click();
-    await this.waitForVisible(this.page.locator('#bookings-tab'));
+    await this.waitForVisible(this.page.locator('#bookingForm'));
+    await this.page.waitForLoadState('networkidle');
   }
 
   /**

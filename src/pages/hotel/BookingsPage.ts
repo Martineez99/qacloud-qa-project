@@ -168,6 +168,10 @@ export class BookingsPage extends BasePage {
     return this.page.locator('#statusModal .close');
   }
 
+  get confirmDialogButton(): Locator {
+  return this.page.locator('#confirmDialog button.btn-danger');
+}
+
   // ── Actions — Form ────────────────────────────────────────────────────────
 
   /**
@@ -189,7 +193,11 @@ export class BookingsPage extends BasePage {
    * Debe llamarse DESPUÉS de selectProperty.
    */
   async selectRoomTypeByName(roomTypeName: string): Promise<void> {
-    await this.roomTypeSelect.selectOption({ label: roomTypeName });
+    // Las opciones incluyen el precio: "Standard Double Room - $220.00/night"
+    // Seleccionamos por valor parcial filtrando la opción que contiene el nombre
+    const option = this.roomTypeSelect.locator('option', { hasText: roomTypeName });
+    const value = await option.getAttribute('value');
+    await this.roomTypeSelect.selectOption(value ?? '');
   }
 
   /**
@@ -215,8 +223,17 @@ export class BookingsPage extends BasePage {
    * Envía el formulario de creación de booking.
    */
   async submitBookingForm(): Promise<void> {
+    const rowsBefore = await this.tableRows.count();
     await this.submitButton.click();
-    await this.waitForPageLoad();
+    // Esperamos a que aparezca al menos una fila nueva en la tabla
+    await this.page.waitForFunction(
+      (count) => {
+        const rows = document.querySelectorAll('#bookingsBody tr');
+        return rows.length > count;
+      },
+      rowsBefore,
+      { timeout: 15_000 }
+    );
   }
 
   /**
@@ -245,9 +262,12 @@ export class BookingsPage extends BasePage {
    * Gestiona el diálogo de confirmación del navegador si aparece.
    */
   async deleteBooking(confirmationNumber: string): Promise<void> {
-    this.page.once('dialog', dialog => dialog.accept());
     await this.getDeleteButton(confirmationNumber).click();
-    await this.waitForPageLoad();
+    // El modal HTML custom requiere click explícito en Confirm — no es diálogo nativo
+    await this.waitForVisible(this.confirmDialogButton);
+    await this.confirmDialogButton.click();
+    // Esperamos a que la fila desaparezca del DOM
+    await this.getBookingRow(confirmationNumber).waitFor({ state: 'detached', timeout: 10_000 });
   }
 
   /**

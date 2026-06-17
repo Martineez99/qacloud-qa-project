@@ -8,6 +8,7 @@
     "test:e2e:headed": "playwright test --config=config/playwright.config.ts --headed",
     "test:e2e:market": "playwright test --config=config/playwright.config.ts src/e2e/market/",
     "test:e2e:hotel": "playwright test --config=config/playwright.config.ts src/e2e/hotel/",
+    "auth:setup:hotel": "playwright test --config=config/playwright.config.ts --project=setup-hotel",
     "test:api": "playwright test --config=config/playwright.api.config.ts",
     "test:smoke": "playwright test --config=config/playwright.config.ts --grep @smoke",
     "test:perf": "k6 run src/performance/scenarios/market-load.js",

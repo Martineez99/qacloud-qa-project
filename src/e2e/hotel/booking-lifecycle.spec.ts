@@ -191,14 +191,17 @@ test.describe('Hotel - Booking Lifecycle', () => {
       // ── ASSERT: el campo de motivo aparece solo con CANCELLED ─────────────
       await expect(hotelPage.bookings.modalCancellationReasonGroup).toBeVisible();
 
-      // ── ACT: rellenar motivo y confirmar ──────────────────────────────────
+      // ── ACT: rellenar motivo y confirmar ──────────────────────────────────────────
       await hotelPage.bookings.modalTextareaCancellationReason.fill(
         'Guest requested cancellation'
       );
       await hotelPage.bookings.modalUpdateStatusButton.click();
-      await hotelPage.getPage().waitForLoadState('networkidle');
 
-      // ── ASSERT: badge actualizado a CANCELLED ─────────────────────────────
+      // Esperamos a que el badge cambie — la tabla se actualiza via JS tras el cierre del modal
+      await expect(hotelPage.bookings.getStatusBadge(confirmation_number))
+        .toHaveText('CANCELLED', { timeout: 10_000 });
+
+      // ── ASSERT: badge actualizado a CANCELLED ─────────────────────────────────────
       const status = await hotelPage.bookings.getBookingStatus(confirmation_number);
       expect(status).toBe('CANCELLED');
 
@@ -228,15 +231,15 @@ test.describe('Hotel - Booking Lifecycle', () => {
       // ── ACT: abrir modal, seleccionar booking y rellenar review ───────────
       await hotelPage.reviews.openAddReviewModal();
 
-      // El dropdown debe contener la booking con estado CHECKED_OUT
+      // El dropdown debe contener la booking CHECKED_OUT — verificamos que existe la opción
       const bookingOption = hotelPage.reviews.selectBooking.locator('option', {
         hasText: GUEST.name,
       });
-      await expect(bookingOption).toBeVisible();
+      await expect(bookingOption).toHaveCount(1);
 
-      // Seleccionamos por texto parcial del guest name
-      await hotelPage.reviews.selectBooking.selectOption({ label: new RegExp(GUEST.name) as unknown as string });
-      await hotelPage.reviews.waitForVisible(hotelPage.reviews.reviewFormSection);
+      // Leemos el value de la opción y la seleccionamos por value
+      const bookingValue = await bookingOption.getAttribute('value') ?? '';
+      await hotelPage.reviews.selectBooking.selectOption({ value: bookingValue });
 
       // ── ACT: poner ratings y comentario ──────────────────────────────────
       await hotelPage.reviews.setOverallRating(5);
@@ -409,10 +412,6 @@ async function createBookingViaApi(page: any): Promise<{ id: string; confirmatio
     }
   );
   const booking = await bookingRes.json();
-  console.log('STATUS:', bookingRes.status());
-  console.log('BODY:', JSON.stringify(booking, null, 2));
-  console.log('PROPERTY:', JSON.stringify(property, null, 2));
-  console.log('ROOM TYPE:', JSON.stringify(roomType, null, 2));
   return {
     id:                  booking.id,
     confirmation_number: booking.confirmation_number,
@@ -424,11 +423,12 @@ async function createBookingViaApi(page: any): Promise<{ id: string; confirmatio
 
 async function driveToCheckedOut(page: any, bookingId: string): Promise<void> {
   const baseUrl = process.env.QACLOUD_BASE_URL ?? '';
-  const url = `${baseUrl}/api/hotel/bookings/${bookingId}`;
+  const url = `${baseUrl}/api/hotel/bookings/${bookingId}/status`;  
   const headers = { ...apiHeaders(), 'Content-Type': 'application/json' };
 
   for (const status of ['CONFIRMED', 'CHECKED_IN', 'CHECKED_OUT']) {
-    await page.request.put(url, { headers, data: { status } });
+    const res = await page.request.patch(url, { headers, data: { status } });  
+    const body = await res.text();
   }
 }
 

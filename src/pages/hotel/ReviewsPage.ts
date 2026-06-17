@@ -111,6 +111,14 @@ export class ReviewsPage extends BasePage {
   async openAddReviewModal(): Promise<void> {
     await this.openModalButton.click();
     await this.waitForVisible(this.modal);
+    // Esperamos a que el select se pueble vía JS — arranca vacío con solo el placeholder
+    await this.page.waitForFunction(
+      () => {
+        const select = document.querySelector('#reviewBookingSelect') as HTMLSelectElement;
+        return select && select.options.length > 1;
+      },
+      { timeout: 10_000 }
+    );
   }
 
   /**
@@ -164,7 +172,11 @@ export class ReviewsPage extends BasePage {
    */
   async submitReview(): Promise<void> {
     await this.submitReviewButton.click();
-    await this.waitForPageLoad();
+    // Esperamos a que la tabla se actualice — la review aparece vía JS tras el submit
+    await this.page.waitForFunction(
+      () => document.querySelectorAll('#reviewsBody tr').length > 0,
+      { timeout: 10_000 }
+    );
   }
 
   /**

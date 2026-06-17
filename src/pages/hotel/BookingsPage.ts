@@ -168,6 +168,10 @@ export class BookingsPage extends BasePage {
     return this.page.locator('#statusModal .close');
   }
 
+  get confirmDialogButton(): Locator {
+  return this.page.locator('#confirmDialog button.btn-danger');
+}
+
   // ── Actions — Form ────────────────────────────────────────────────────────
 
   /**
@@ -258,9 +262,12 @@ export class BookingsPage extends BasePage {
    * Gestiona el diálogo de confirmación del navegador si aparece.
    */
   async deleteBooking(confirmationNumber: string): Promise<void> {
-    this.page.once('dialog', dialog => dialog.accept());
     await this.getDeleteButton(confirmationNumber).click();
-    await this.waitForPageLoad();
+    // El modal HTML custom requiere click explícito en Confirm — no es diálogo nativo
+    await this.waitForVisible(this.confirmDialogButton);
+    await this.confirmDialogButton.click();
+    // Esperamos a que la fila desaparezca del DOM
+    await this.getBookingRow(confirmationNumber).waitFor({ state: 'detached', timeout: 10_000 });
   }
 
   /**

@@ -217,7 +217,7 @@ Regex:   /^HB\d{8}-[A-Z0-9]{6}$/
 | `POST` | `/api/hotel/bookings` | Create booking | 201 |
 | `GET` | `/api/hotel/bookings` | List all bookings | 200 |
 | `GET` | `/api/hotel/bookings/:id` | Get specific booking | 200 |
-| `PUT` | `/api/hotel/bookings/:id` | Update status / notes | 200 |
+| `PATCH` | `/api/hotel/bookings/:id` | Update status / notes | 200 |
 | `DELETE` | `/api/hotel/bookings/:id` | Delete booking | 200 |
 
 **Request body — `POST /api/hotel/bookings`:**
@@ -231,8 +231,8 @@ Regex:   /^HB\d{8}-[A-Z0-9]{6}$/
   "guest_phone":    "+1234567890",   // required
   "check_in_date":  "2026-07-01",    // required — YYYY-MM-DD
   "check_out_date": "2026-07-03",    // required — YYYY-MM-DD
-  "num_guests":     2,               // required
-  "num_rooms":      1,               // optional — default 1
+  "number_of_guests":     2,               // required
+  "number_of_rooms":      1,               // optional — default 1
   "special_requests": "Late check-in" // optional
 }
 ```

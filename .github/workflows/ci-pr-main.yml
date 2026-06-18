@@ -112,6 +112,8 @@ jobs:
           --project=smoke-login
           --project=smoke-navigation
           --project=e2e-market
+          --project=e2e-hotel
+
 
       - name: Upload Allure results (E2E)
         if: always()

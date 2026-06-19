@@ -32,12 +32,17 @@ Each user gets their own **fully isolated data environment**, pre-seeded with pr
 User (api_key)
  ├── Properties     (hotels — seed data restored on reset)
  │     └── Room Types  (belong to a Property — seed data restored on reset)
- ├── Bookings       (belong to a Property + Room Type — NOT reset)
- └── Reviews        (belong to a Property via a CHECKED_OUT Booking — NOT reset)
+ ├── Bookings       (belong to a Property + Room Type — wiped on reset)
+ └── Reviews        (belong to a Property via a CHECKED_OUT Booking — wiped on reset)
 ```
 
-> ⚠️ `POST /api/hotel/reset` restores **Properties and Room Types only**.
-> Bookings and Reviews are NOT affected by reset.
+> ✅ `POST /api/hotel/reset` resets **all hotel data** for the authenticated user:
+> Properties and Room Types are restored to seed state, and Bookings and Reviews
+> are wiped completely (the user starts with zero bookings/reviews after a reset).
+>
+> *Confirmed against the live Swagger description ("Reset all hotel data for the
+> authenticated user") — this corrects an earlier assumption in this document that
+> reset only touched Properties and Room Types.*
 
 ---
 
@@ -52,7 +57,7 @@ User (api_key)
 | **Stats dashboard** | Total Bookings, Pending, Confirmed, Checked In, Total Revenue update in real time | Counter validation |
 | **Confirmation number format** | `HB` + date (YYYYMMDD) + `-` + 6 random alphanumeric chars (e.g. `HB20260611-YW2HVP`) | Regex validation |
 | **Data isolation** | Using another user's API key returns empty data | Security testing |
-| **Reset endpoint** | `POST /api/hotel/reset` restores Properties and Room Types to seed state | Deterministic test setup |
+| **Reset endpoint** | `POST /api/hotel/reset` resets **all** hotel data — Properties/Room Types restored to seed, Bookings/Reviews wiped to zero | Full deterministic test setup, no manual cleanup needed |
 | **Cascade on property delete** | Deleting a Property removes its Room Types | Referential integrity |
 
 ---
@@ -148,10 +153,13 @@ Regex:   /^HB\d{8}-[A-Z0-9]{6}$/
 ### 5.1 Properties Flow
 
 ```
-1. POST /api/hotel/reset              → Deterministic state (5 seed properties + 14 room types)
+1. POST /api/hotel/reset              → Deterministic state: 5 seed properties + 14 room types
+                                        restored; all bookings and reviews wiped to zero
 2. GET  /api/hotel/properties         → List all properties
-3. POST /api/hotel/properties         → Create property (required: name, city, country, address)
-4. DELETE /api/hotel/properties/:id   → Delete property (CASCADE removes its room types)
+3. GET  /api/hotel/properties/:id     → Get a single property
+4. POST /api/hotel/properties         → Create property (required: name, city, country, address)
+5. PUT  /api/hotel/properties/:id     → Update property (partial update)
+6. DELETE /api/hotel/properties/:id   → Delete property (CASCADE removes its room types)
 ```
 
 ### 5.2 Room Types Flow
@@ -160,7 +168,9 @@ Regex:   /^HB\d{8}-[A-Z0-9]{6}$/
 1. POST /api/hotel/room-types         → Create room type (required: property_id, name, bed_type,
                                         max_occupancy, price_per_night, total_rooms)
 2. GET  /api/hotel/room-types         → List all room types
-3. DELETE /api/hotel/room-types/:id   → Delete room type
+3. GET  /api/hotel/room-types/:id     → Get a single room type
+4. PUT  /api/hotel/room-types/:id     → Update room type (partial update)
+5. DELETE /api/hotel/room-types/:id   → Delete room type
 ```
 
 ### 5.3 Booking Lifecycle Flow
@@ -171,11 +181,12 @@ Regex:   /^HB\d{8}-[A-Z0-9]{6}$/
                                         check_in_date, check_out_date, num_guests)
 2. GET  /api/hotel/bookings           → List all bookings (optional: ?status=PENDING)
 3. GET  /api/hotel/bookings/:id       → Get specific booking
-4. PUT  /api/hotel/bookings/:id       → Update status or notes
+4. GET  /api/hotel/availability       → Check room availability (property_id, check_in, check_out)
+5. PATCH /api/hotel/bookings/:id/status → Update status (and cancellation_reason when applicable)
    Valid transitions: PENDING → CONFIRMED → CHECKED_IN → CHECKED_OUT
                       Any status → CANCELLED (requires cancellation_reason)
                       Any status → NO_SHOW
-5. DELETE /api/hotel/bookings/:id     → Delete booking record
+6. DELETE /api/hotel/bookings/:id     → Delete booking record
 ```
 
 ### 5.4 Reviews Flow
@@ -183,7 +194,7 @@ Regex:   /^HB\d{8}-[A-Z0-9]{6}$/
 ```
 1. [Booking with status CHECKED_OUT]  → Required precondition
 2. POST /api/hotel/reviews            → Create review (required: booking_id, property_id,
-                                        overall_rating 1-5)
+                                        rating 1-5)
 3. GET  /api/hotel/reviews            → List all reviews
 ```
 
@@ -198,16 +209,20 @@ Regex:   /^HB\d{8}-[A-Z0-9]{6}$/
 | Method | Endpoint | Description | Success |
 |--------|----------|-------------|---------|
 | `GET` | `/api/hotel/properties` | List all properties | 200 |
+| `GET` | `/api/hotel/properties/:id` | Get specific property | 200 |
 | `POST` | `/api/hotel/properties` | Create property | 201 |
+| `PUT` | `/api/hotel/properties/:id` | Update property (partial) | 200 |
 | `DELETE` | `/api/hotel/properties/:id` | Delete property (cascade) | 200 |
-| `POST` | `/api/hotel/reset` | Reset to seed state | 200 |
+| `POST` | `/api/hotel/reset` | Reset **all** hotel data to seed state (properties, room types, bookings, reviews) | 200 |
 
 ### 6.2 Room Types
 
 | Method | Endpoint | Description | Success |
 |--------|----------|-------------|---------|
 | `GET` | `/api/hotel/room-types` | List all room types | 200 |
+| `GET` | `/api/hotel/room-types/:id` | Get specific room type | 200 |
 | `POST` | `/api/hotel/room-types` | Create room type | 201 |
+| `PUT` | `/api/hotel/room-types/:id` | Update room type (partial) | 200 |
 | `DELETE` | `/api/hotel/room-types/:id` | Delete room type | 200 |
 
 ### 6.3 Bookings
@@ -215,10 +230,14 @@ Regex:   /^HB\d{8}-[A-Z0-9]{6}$/
 | Method | Endpoint | Description | Success |
 |--------|----------|-------------|---------|
 | `POST` | `/api/hotel/bookings` | Create booking | 201 |
-| `GET` | `/api/hotel/bookings` | List all bookings | 200 |
+| `GET` | `/api/hotel/bookings` | List all bookings (optional `?status=`) | 200 |
 | `GET` | `/api/hotel/bookings/:id` | Get specific booking | 200 |
-| `PATCH` | `/api/hotel/bookings/:id` | Update status / notes | 200 |
+| `PATCH` | `/api/hotel/bookings/:id/status` | Update booking status (+ `cancellation_reason` when applicable) | 200 |
 | `DELETE` | `/api/hotel/bookings/:id` | Delete booking | 200 |
+
+> ⚠️ **Corrected:** status updates use `PATCH /api/hotel/bookings/:id/status`,
+> **not** `PUT /api/hotel/bookings/:id` as earlier drafts of this document stated.
+> Confirmed against the live Swagger UI at `/hotel/docs`.
 
 **Request body — `POST /api/hotel/bookings`:**
 
@@ -231,13 +250,13 @@ Regex:   /^HB\d{8}-[A-Z0-9]{6}$/
   "guest_phone":    "+1234567890",   // required
   "check_in_date":  "2026-07-01",    // required — YYYY-MM-DD
   "check_out_date": "2026-07-03",    // required — YYYY-MM-DD
-  "number_of_guests":     2,               // required
-  "number_of_rooms":      1,               // optional — default 1
+  "num_guests":     2,               // required
+  "num_rooms":      1,               // optional — default 1
   "special_requests": "Late check-in" // optional
 }
 ```
 
-**Request body — `PUT /api/hotel/bookings/:id`:**
+**Request body — `PATCH /api/hotel/bookings/:id/status`:**
 
 ```json
 {
@@ -252,7 +271,25 @@ Regex:   /^HB\d{8}-[A-Z0-9]{6}$/
 }
 ```
 
-### 6.4 Reviews
+### 6.4 Availability
+
+| Method | Endpoint | Description | Success |
+|--------|----------|-------------|---------|
+| `GET` | `/api/hotel/availability` | Check room availability for a property and date range | 200 |
+
+**Query params — `GET /api/hotel/availability`:**
+
+```
+property_id=uuid           // required
+check_in=2026-07-01        // required — YYYY-MM-DD
+check_out=2026-07-03       // required — YYYY-MM-DD
+```
+
+> 🆕 Newly documented endpoint — not covered by automated tests yet.
+> Exact response shape and validation rules to be confirmed once we
+> write `TC-H-API` cases for it.
+
+### 6.5 Reviews
 
 | Method | Endpoint | Description | Success |
 |--------|----------|-------------|---------|
@@ -265,7 +302,7 @@ Regex:   /^HB\d{8}-[A-Z0-9]{6}$/
 {
   "booking_id":          "uuid",  // required — must be CHECKED_OUT
   "property_id":         "uuid",  // required
-  "overall_rating":      5,       // required — 1 to 5
+  "rating":               5,      // required — 1 to 5
   "cleanliness_rating":  4,       // optional — 1 to 5
   "service_rating":      5,       // optional — 1 to 5
   "location_rating":     5,       // optional — 1 to 5
@@ -273,6 +310,11 @@ Regex:   /^HB\d{8}-[A-Z0-9]{6}$/
   "comment":             "Excellent stay!" // optional
 }
 ```
+
+> ⚠️ **Corrected:** the rating field is named `rating`, **not** `overall_rating`
+> as earlier drafts of this document stated. Confirmed against the live Swagger
+> schema. The UI section above (§4, Tab: Reviews) may still describe it to the
+> user as "Overall Rating" — that's just the UI label, the API field is `rating`.
 
 ---
 
@@ -432,9 +474,78 @@ Regex:   /^HB\d{8}-[A-Z0-9]{6}$/
 
 ## 8. Test Cases — API
 
-> To be defined in Sprint 3 — API phase.
-> Will cover: properties CRUD, room types CRUD, booking lifecycle, edge cases
-> (date validation, overlapping bookings, max occupancy), and reviews.
+> Implemented in Sprint 3 across four spec files in `src/api/hotel/`:
+> `properties.api.spec.ts` · `room-types.api.spec.ts` · `bookings.api.spec.ts` · `reviews.api.spec.ts`
+>
+> State strategy: since `POST /api/hotel/reset` wipes **all** hotel data (see §2),
+> every suite uses a single `beforeAll` reset — no manual cleanup of bookings/reviews
+> is needed between suites.
+
+### Properties
+
+| ID | Description | Type | Input | Expected |
+|----|-------------|------|-------|----------|
+| TC-H-API-PROP-001 | GET all properties after reset | Positive | — | 200 · array length = 5 (seed) |
+| TC-H-API-PROP-002 | GET property by ID | Positive | Valid property ID | 200 · matches the requested property |
+| TC-H-API-PROP-003 | GET property by non-existent ID | Negative | Random UUID | 404 |
+| TC-H-API-PROP-004 | Create property with required fields | Positive | name, city, country, address | 201 · all fields present in response |
+| TC-H-API-PROP-005 | Create property missing required field | Negative | Missing `name` | 400 |
+| TC-H-API-PROP-006 | Partial update changes only one field | Edge | `PUT { "city": "Boston" }` | 200 · only city changed |
+| TC-H-API-PROP-007 | Delete property | Positive | Valid property ID | 200 · then GET/:id → 404 |
+| TC-H-API-PROP-008 | Delete property cascades to its room types | Edge | Create property + room type → delete property | Room type no longer in GET all |
+
+### Room Types
+
+| ID | Description | Type | Input | Expected |
+|----|-------------|------|-------|----------|
+| TC-H-API-RT-001 | GET all room types after reset | Positive | — | 200 · array length = 14 (seed) |
+| TC-H-API-RT-002 | GET room type by ID | Positive | Valid room type ID | 200 · matches the requested room type |
+| TC-H-API-RT-003 | Create room type with required fields | Positive | property_id, name, bed_type, max_occupancy, price_per_night, total_rooms | 201 |
+| TC-H-API-RT-004 | Create room type with invalid bed_type | Negative | `bed_type="Hammock"` | 400 |
+| TC-H-API-RT-005 | Create room type without property_id | Negative | Missing `property_id` | 400 |
+| TC-H-API-RT-006 | Partial update changes only price | Edge | `PUT { "price_per_night": 199.00 }` | 200 · only price changed |
+| TC-H-API-RT-007 | Delete room type | Positive | Valid room type ID | 200 |
+
+### Bookings
+
+| ID | Description | Type | Input | Expected |
+|----|-------------|------|-------|----------|
+| TC-H-API-BOOK-001 | Create booking with required fields | Positive | All required fields | 201 · `confirmation_number` matches `/^HB\d{8}-[A-Z0-9]{6}$/` |
+| TC-H-API-BOOK-002 | Create booking missing required field | Negative | Missing `guest_email` | 400 |
+| TC-H-API-BOOK-003 | GET all bookings | Positive | — | 200 · array of created bookings |
+| TC-H-API-BOOK-004 | GET bookings filtered by status | Positive | `?status=PENDING` | 200 · only PENDING bookings returned |
+| TC-H-API-BOOK-005 | GET booking by ID | Positive | Valid booking ID | 200 |
+| TC-H-API-BOOK-006 | GET booking by non-existent ID | Negative | Random UUID | 404 |
+| TC-H-API-BOOK-007 | Full lifecycle PATCH transitions | Positive | PENDING → CONFIRMED → CHECKED_IN → CHECKED_OUT | Each PATCH → 200, status updates correctly |
+| TC-H-API-BOOK-008 | CANCELLED without cancellation_reason | Negative | `{ "status": "CANCELLED" }` | 400 |
+| TC-H-API-BOOK-009 | CANCELLED with cancellation_reason | Positive | `{ "status": "CANCELLED", "cancellation_reason": "..." }` | 200 |
+| TC-H-API-BOOK-010 | PATCH to NO_SHOW | Positive | `{ "status": "NO_SHOW" }` | 200 |
+| TC-H-API-BOOK-011 | PATCH with invalid status | Negative | `{ "status": "FINISHED" }` | 400 |
+| TC-H-API-BOOK-012 | Delete booking | Positive | Valid booking ID | 200 · then GET/:id → 404 |
+| TC-H-API-BOOK-013 | total_amount calculated correctly | Positive | price_per_night × nights × num_rooms | `total_amount` matches expected value |
+| TC-H-API-BOOK-014 | Confirmation number format | Edge | Any created booking | Matches `/^HB\d{8}-[A-Z0-9]{6}$/` |
+
+### Availability
+
+| ID | Description | Type | Input | Expected |
+|----|-------------|------|-------|----------|
+| TC-H-API-AVAIL-001 | GET availability with valid params | Positive | property_id, check_in, check_out | 200 |
+| TC-H-API-AVAIL-002 | GET availability missing required param | Negative | Missing `check_out` | 400 |
+
+> 🔲 Availability test cases are documented but **not yet implemented** —
+> planned alongside the booking date-validation work.
+
+### Reviews
+
+| ID | Description | Type | Input | Expected |
+|----|-------------|------|-------|----------|
+| TC-H-API-REV-001 | Create review for CHECKED_OUT booking | Positive | booking_id (CHECKED_OUT), property_id, rating | 201 |
+| TC-H-API-REV-002 | Create review for booking NOT CHECKED_OUT | Negative | booking_id (PENDING) | 400 |
+| TC-H-API-REV-003 | Create review missing booking_id | Negative | Missing `booking_id` | 400 |
+| TC-H-API-REV-004 | Create review missing property_id | Negative | Missing `property_id` | 400 |
+| TC-H-API-REV-005 | Create review missing rating | Negative | Missing `rating` | 400 |
+| TC-H-API-REV-006 | Create review with rating out of range | Negative | `rating=0` and `rating=6` | 400 |
+| TC-H-API-REV-007 | GET all reviews | Positive | — | 200 · includes the created review |
 
 ---
 
@@ -459,10 +570,27 @@ headers: {
 ### Reset Strategy
 
 ```typescript
-// In beforeAll of every Hotel E2E suite
+// In beforeAll of every Hotel API/E2E suite
 await request.post('/api/hotel/reset', { headers: authHeaders });
-// ⚠️ Reset affects Properties and Room Types only
-// Bookings and Reviews are NOT reset — clean them via DELETE in afterAll if needed
+// ✅ Reset wipes ALL hotel data: Properties and Room Types restored to seed,
+// Bookings and Reviews wiped to zero. A single beforeAll reset per suite is
+// enough — no manual DELETE cleanup of bookings/reviews is required.
+```
+
+### Booking Status Update — PATCH, not PUT
+
+```typescript
+// ⚠️ Status updates use a dedicated PATCH endpoint, not PUT on the booking itself
+await request.patch(`/api/hotel/bookings/${bookingId}/status`, {
+  headers: authHeaders,
+  data: { status: 'CONFIRMED' },
+});
+
+// CANCELLED requires cancellation_reason in the same body
+await request.patch(`/api/hotel/bookings/${bookingId}/status`, {
+  headers: authHeaders,
+  data: { status: 'CANCELLED', cancellation_reason: 'Guest request' },
+});
 ```
 
 ### Booking Preconditions via API
@@ -477,6 +605,15 @@ await request.post('/api/hotel/reset', { headers: authHeaders });
 
 ```typescript
 expect(booking.confirmation_number).toMatch(/^HB\d{8}-[A-Z0-9]{6}$/)
+```
+
+### Review Rating Field
+
+```typescript
+// ⚠️ The API field is `rating`, not `overall_rating`.
+// The UI may label it "Overall Rating" for the user, but the request body key is `rating`.
+expect(review.rating).toBeGreaterThanOrEqual(1);
+expect(review.rating).toBeLessThanOrEqual(5);
 ```
 
 ### Dynamic Room Type Select

@@ -146,7 +146,7 @@ test.describe('Hotel Room Types API', () => {
     // 🐛 BUG qacloud.dev #XX — API returns 500 instead of 400 for invalid bed_type.
     // Input validation is missing at the API layer for the bed_type enum field.
     // Expected: 400 Bad Request. Actual: 500 Internal Server Error.
-    // Tracked in: https://github.com/Martineez99/qacloud-qa-project/issues/XX
+    // Tracked in: https://github.com/Martineez99/qacloud-qa-project/issues/56
     // Asserting [400, 500] as workaround until the platform fixes this.
     expect([400, 500]).toContain(response.status);
   });

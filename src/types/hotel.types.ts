@@ -66,8 +66,8 @@ export interface Booking {
   guest_phone: string;
   check_in_date: string;
   check_out_date: string;
-  num_guests: number;
-  num_rooms: number;
+  number_of_guests: number;
+  number_of_rooms: number;
   total_amount: number;
   status: BookingStatus;
   special_requests?: string;
@@ -79,7 +79,7 @@ export interface Review {
   id: string;
   booking_id: string;
   property_id: string;
-  overall_rating: number;
+  rating: number;
   cleanliness_rating?: number;
   service_rating?: number;
   location_rating?: number;
@@ -105,6 +105,25 @@ export interface CreatePropertyPayload {
   cancellation_policy?: string;
 }
 
+/**
+ * Payload para PUT /api/hotel/properties/:id — update parcial.
+ * Todos los campos son opcionales: solo se envían los que se quieren cambiar.
+ */
+export interface UpdatePropertyPayload {
+  name?: string;
+  city?: string;
+  country?: string;
+  address?: string;
+  star_rating?: number;
+  postal_code?: string;
+  phone?: string;
+  email?: string;
+  check_in_time?: string;
+  check_out_time?: string;
+  description?: string;
+  cancellation_policy?: string;
+}
+
 export interface CreateRoomTypePayload {
   property_id: string;
   name: string;
@@ -112,6 +131,22 @@ export interface CreateRoomTypePayload {
   max_occupancy: number;
   price_per_night: number;
   total_rooms: number;
+  room_size?: number;
+  description?: string;
+  amenities?: string;
+}
+
+/**
+ * Payload para PUT /api/hotel/room-types/:id — update parcial.
+ * Todos los campos son opcionales: solo se envían los que se quieren cambiar.
+ */
+export interface UpdateRoomTypePayload {
+  property_id?: string;
+  name?: string;
+  bed_type?: BedType;
+  max_occupancy?: number;
+  price_per_night?: number;
+  total_rooms?: number;
   room_size?: number;
   description?: string;
   amenities?: string;
@@ -125,8 +160,8 @@ export interface CreateBookingPayload {
   guest_phone: string;
   check_in_date: string;
   check_out_date: string;
-  num_guests: number;
-  num_rooms?: number;
+  number_of_guests: number;
+  number_of_rooms?: number;
   special_requests?: string;
 }
 
@@ -138,7 +173,7 @@ export interface UpdateBookingPayload {
 export interface CreateReviewPayload {
   booking_id: string;
   property_id: string;
-  overall_rating: number;
+  rating: number;
   cleanliness_rating?: number;
   service_rating?: number;
   location_rating?: number;

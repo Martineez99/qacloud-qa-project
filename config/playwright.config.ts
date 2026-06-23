@@ -124,6 +124,19 @@ export default defineConfig({
       },
     },
 
+    // ── API Hotel ──────────────────────────────────────────────────────────────
+    {
+      name: 'api-hotel',
+      testMatch: '**/api/hotel/**/*.spec.ts',
+      timeout: 15000,
+      use: {
+        extraHTTPHeaders: apiHeaders,
+        screenshot: 'off',
+        video: 'off',
+        trace: 'off',
+      },
+    },
+
     // ── API Market — Contract tests ────────────────────────────────────────────
     {
       name: 'api-market-contract',

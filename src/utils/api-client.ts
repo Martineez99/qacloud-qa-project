@@ -22,9 +22,15 @@ import {
   Property,
   RoomType,
   Booking,
+  Review,
   BookingStatus,
+  CreatePropertyPayload,
+  UpdatePropertyPayload,
+  CreateRoomTypePayload,
+  UpdateRoomTypePayload,
   CreateBookingPayload,
   UpdateBookingPayload,
+  CreateReviewPayload,
 } from '../types/hotel.types';
 
 export class ApiClient {
@@ -220,7 +226,8 @@ export class ApiClient {
   /**
    * Resetea el estado del Hotel para el usuario actual.
    * Restaura las 5 properties y 14 room types seed.
-   * NO afecta a bookings ni reviews.
+   * También VACÍA bookings y reviews por completo (confirmado en Swagger:
+   * "Reset all hotel data for the authenticated user").
    */
   async hotelReset(): Promise<void> {
     const response = await this.post<void>('/api/hotel/reset');
@@ -239,12 +246,95 @@ export class ApiClient {
   }
 
   /**
+   * Crea una property y la devuelve.
+   */
+  async createProperty(payload: CreatePropertyPayload): Promise<Property> {
+    const response = await this.post<Property>('/api/hotel/properties', { data: payload });
+    if (!response.ok) {
+      throw new Error(`createProperty() falló: ${response.status} — ${JSON.stringify(response.body)}`);
+    }
+    return response.body;
+  }
+
+  /**
+   * Devuelve una property concreta por ID.
+   */
+  async getPropertyById(propertyId: string): Promise<Property> {
+    const response = await this.get<Property>(`/api/hotel/properties/${propertyId}`);
+    if (!response.ok) throw new Error(`getPropertyById() falló: ${response.status}`);
+    return response.body;
+  }
+
+  /**
+   * Actualiza una property (update parcial — solo cambia los campos enviados).
+   */
+  async updateProperty(propertyId: string, payload: UpdatePropertyPayload): Promise<Property> {
+    const response = await this.put<Property>(`/api/hotel/properties/${propertyId}`, { data: payload });
+    if (!response.ok) {
+      throw new Error(`updateProperty() falló: ${response.status} — ${JSON.stringify(response.body)}`);
+    }
+    return response.body;
+  }
+
+  /**
+   * Elimina una property por ID.
+   * ⚠️ Cascade: también elimina sus room types asociados.
+   */
+  async deleteProperty(propertyId: string): Promise<void> {
+    const response = await this.delete<void>(`/api/hotel/properties/${propertyId}`);
+    if (!response.ok) {
+      throw new Error(`deleteProperty() falló: ${response.status}`);
+    }
+  }
+
+  /**
    * Devuelve todos los room types del usuario.
    */
   async getRoomTypes(): Promise<RoomType[]> {
     const response = await this.get<RoomType[]>('/api/hotel/room-types');
     if (!response.ok) throw new Error(`getRoomTypes() falló: ${response.status}`);
     return response.body;
+  }
+
+  /**
+   * Crea un room type y lo devuelve.
+   */
+  async createRoomType(payload: CreateRoomTypePayload): Promise<RoomType> {
+    const response = await this.post<RoomType>('/api/hotel/room-types', { data: payload });
+    if (!response.ok) {
+      throw new Error(`createRoomType() falló: ${response.status} — ${JSON.stringify(response.body)}`);
+    }
+    return response.body;
+  }
+
+  /**
+   * Devuelve un room type concreto por ID.
+   */
+  async getRoomTypeById(roomTypeId: string): Promise<RoomType> {
+    const response = await this.get<RoomType>(`/api/hotel/room-types/${roomTypeId}`);
+    if (!response.ok) throw new Error(`getRoomTypeById() falló: ${response.status}`);
+    return response.body;
+  }
+
+  /**
+   * Actualiza un room type (update parcial — solo cambia los campos enviados).
+   */
+  async updateRoomType(roomTypeId: string, payload: UpdateRoomTypePayload): Promise<RoomType> {
+    const response = await this.put<RoomType>(`/api/hotel/room-types/${roomTypeId}`, { data: payload });
+    if (!response.ok) {
+      throw new Error(`updateRoomType() falló: ${response.status} — ${JSON.stringify(response.body)}`);
+    }
+    return response.body;
+  }
+
+  /**
+   * Elimina un room type por ID.
+   */
+  async deleteRoomType(roomTypeId: string): Promise<void> {
+    const response = await this.delete<void>(`/api/hotel/room-types/${roomTypeId}`);
+    if (!response.ok) {
+      throw new Error(`deleteRoomType() falló: ${response.status}`);
+    }
   }
 
   /**
@@ -288,9 +378,13 @@ export class ApiClient {
   /**
    * Actualiza el status de una booking.
    * Si el status es CANCELLED, cancellation_reason es obligatorio.
+   *
+   * ⚠️ Usa PATCH sobre el endpoint dedicado /status, NO PUT sobre la
+   * booking en sí. Confirmado en la Swagger real de qacloud.dev:
+   * PATCH /api/hotel/bookings/:id/status
    */
   async updateBookingStatus(bookingId: string, payload: UpdateBookingPayload): Promise<Booking> {
-    const response = await this.put<Booking>(`/api/hotel/bookings/${bookingId}`, { data: payload });
+    const response = await this.patch<Booking>(`/api/hotel/bookings/${bookingId}/status`, { data: payload });
     if (!response.ok) {
       throw new Error(`updateBookingStatus() falló: ${response.status} — ${JSON.stringify(response.body)}`);
     }
@@ -326,6 +420,37 @@ export class ApiClient {
     const params = status ? { status } : undefined;
     const response = await this.get<Booking[]>('/api/hotel/bookings', { params });
     if (!response.ok) throw new Error(`getBookings() falló: ${response.status}`);
+    return response.body;
+  }
+
+  /**
+   * Devuelve una booking concreta por ID.
+   */
+  async getBookingById(bookingId: string): Promise<Booking> {
+    const response = await this.get<Booking>(`/api/hotel/bookings/${bookingId}`);
+    if (!response.ok) throw new Error(`getBookingById() falló: ${response.status}`);
+    return response.body;
+  }
+
+  /**
+   * Crea una review y la devuelve.
+   * Precondición de negocio: la booking referenciada debe estar CHECKED_OUT
+   * (ver driveBookingToCheckedOut arriba).
+   */
+  async createReview(payload: CreateReviewPayload): Promise<Review> {
+    const response = await this.post<Review>('/api/hotel/reviews', { data: payload });
+    if (!response.ok) {
+      throw new Error(`createReview() falló: ${response.status} — ${JSON.stringify(response.body)}`);
+    }
+    return response.body;
+  }
+
+  /**
+   * Devuelve todas las reviews del usuario.
+   */
+  async getReviews(): Promise<Review[]> {
+    const response = await this.get<Review[]>('/api/hotel/reviews');
+    if (!response.ok) throw new Error(`getReviews() falló: ${response.status}`);
     return response.body;
   }
 

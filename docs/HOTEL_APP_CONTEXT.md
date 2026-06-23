@@ -178,13 +178,13 @@ Regex:   /^HB\d{8}-[A-Z0-9]{6}$/
 ```
 1. POST /api/hotel/bookings           → Create booking (required: property_id, room_type_id,
                                         guest_name, guest_email, guest_phone,
-                                        check_in_date, check_out_date, num_guests)
+                                        check_in_date, check_out_date, number_of_guests)
 2. GET  /api/hotel/bookings           → List all bookings (optional: ?status=PENDING)
 3. GET  /api/hotel/bookings/:id       → Get specific booking
 4. GET  /api/hotel/availability       → Check room availability (property_id, check_in, check_out)
 5. PATCH /api/hotel/bookings/:id/status → Update status (and cancellation_reason when applicable)
    Valid transitions: PENDING → CONFIRMED → CHECKED_IN → CHECKED_OUT
-                      Any status → CANCELLED (requires cancellation_reason)
+                      Any status → CANCELLED (cancellation_reason is optional)
                       Any status → NO_SHOW
 6. DELETE /api/hotel/bookings/:id     → Delete booking record
 ```
@@ -232,7 +232,7 @@ Regex:   /^HB\d{8}-[A-Z0-9]{6}$/
 | `POST` | `/api/hotel/bookings` | Create booking | 201 |
 | `GET` | `/api/hotel/bookings` | List all bookings (optional `?status=`) | 200 |
 | `GET` | `/api/hotel/bookings/:id` | Get specific booking | 200 |
-| `PATCH` | `/api/hotel/bookings/:id/status` | Update booking status (+ `cancellation_reason` when applicable) | 200 |
+| `PATCH` | `/api/hotel/bookings/:id/status` | Update booking status (+ `cancellation_reason` when applicable and its optional) | 200 |
 | `DELETE` | `/api/hotel/bookings/:id` | Delete booking | 200 |
 
 > ⚠️ **Corrected:** status updates use `PATCH /api/hotel/bookings/:id/status`,
@@ -250,8 +250,8 @@ Regex:   /^HB\d{8}-[A-Z0-9]{6}$/
   "guest_phone":    "+1234567890",   // required
   "check_in_date":  "2026-07-01",    // required — YYYY-MM-DD
   "check_out_date": "2026-07-03",    // required — YYYY-MM-DD
-  "num_guests":     2,               // required
-  "num_rooms":      1,               // optional — default 1
+  "number_of_guests":     2,               // required
+  "number_of_rooms":      1,               // optional — default 1
   "special_requests": "Late check-in" // optional
 }
 ```
@@ -522,7 +522,7 @@ check_out=2026-07-03       // required — YYYY-MM-DD
 | TC-H-API-BOOK-010 | PATCH to NO_SHOW | Positive | `{ "status": "NO_SHOW" }` | 200 |
 | TC-H-API-BOOK-011 | PATCH with invalid status | Negative | `{ "status": "FINISHED" }` | 400 |
 | TC-H-API-BOOK-012 | Delete booking | Positive | Valid booking ID | 200 · then GET/:id → 404 |
-| TC-H-API-BOOK-013 | total_amount calculated correctly | Positive | price_per_night × nights × num_rooms | `total_amount` matches expected value |
+| TC-H-API-BOOK-013 | total_amount calculated correctly | Positive | price_per_night × nights × number_of_rooms | `total_amount` matches expected value |
 | TC-H-API-BOOK-014 | Confirmation number format | Edge | Any created booking | Matches `/^HB\d{8}-[A-Z0-9]{6}$/` |
 
 ### Availability

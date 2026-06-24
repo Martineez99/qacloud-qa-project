@@ -46,12 +46,13 @@ jobs:
       # ⚠️  Sin --reporter en CLI: el config ya define list + allure-playwright.
       #     Pasar --reporter por CLI reemplaza TODOS los reporters del config,
       #     lo que impide que allure-playwright escriba en reports/allure-results/.
-      - name: Run Market API tests
+      - name: Run API tests — Market + Hotel
         run: >
           npx playwright test
           --config=config/playwright.config.ts
           --project=api-market
           --project=api-market-contract
+          --project=api-hotel
           --workers=1
 
       - name: Upload Allure results

@@ -46,12 +46,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run Market API tests
+      - name: Run API tests — Market + Hotel
         run: >
           npx playwright test
           --config=config/playwright.config.ts
           --project=api-market
           --project=api-market-contract
+          --project=api-hotel
           --workers=1
           --reporter=list
 

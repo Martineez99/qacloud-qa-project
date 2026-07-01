@@ -247,7 +247,7 @@ main        ← production, always green
         └── chore/
 ```
 
-**Branch naming:** `feature/market-basket-e2e-tests`, `fix/hotel-booking-flaky-test`, `perf/bank-load-test-thresholds`
+**Branch naming:** `feature/market-basket-e2e-tests`, `fix/hotel-booking-flaky-test`, `perf/hotel-spike-test-thresholds`
 
 **Commit format:**
 
@@ -289,11 +289,10 @@ Configure in **Settings → Secrets and variables → Actions**:
 Sprint 2 (Market app) is complete. Next phases:
 
 ```
-Sprint 3 — Hotel + Bank
+Sprint 3 — Hotel
   [ ] Hotel E2E: booking lifecycle
   [ ] Hotel API: rooms, bookings, reviews
-  [ ] Bank API: transfers, accounts, edge cases
-  [ ] K6: hotel spike test + bank stress test
+  [ ] K6: hotel spike test
 
 Sprint 4 — Advanced Patterns
   [ ] Chaos testing (Crypto Simulator — WebSocket)

@@ -79,7 +79,6 @@ The project focuses on three core applications that cover all important testing 
 ```
 Market  →  E2E + API + Contract + Performance   (primary — full CRUD lifecycle)
 Hotel   →  E2E + API + Chaos Testing            (booking lifecycle, in progress)
-Bank    →  API + Performance                    (concurrency, financial edge cases, planned)
 ```
 
 The **UI Sandbox** is used to build the reusable Page Object base library.
@@ -188,7 +187,6 @@ qacloud-qa-project/
 | Auth endpoints | Login, register, token validation | `@auth @api` |
 | Market CRUD | Products, basket, orders — happy path + edge cases | `@market @api` |
 | Hotel CRUD | Rooms, bookings, stays, reviews | `@hotel @api` |
-| Bank operations | Accounts, transfers, bills, loans | `@bank @api` |
 | Contract tests | JSON Schema validation | `@contract @api` |
 | Security tests | Auth bypass, injection, CORS | `@security @api` |
 
@@ -199,7 +197,6 @@ qacloud-qa-project/
 | Market Baseline | Load test | 50 VUs | 5 min |
 | Market Load | Load test | 200 VUs | 10 min |
 | Hotel Spike | Spike test | 500 VUs in 30s | 3 min |
-| Bank Stress | Stress test | Ramp until failure | 15 min |
 | API Soak | Soak test | 100 VUs sustained | 30 min |
 
 ### 4.3 Data Strategy
@@ -235,7 +232,7 @@ git checkout -b feature/market-basket-e2e-tests
 git checkout -b fix/hotel-booking-flaky-test
 git checkout -b refactor/page-objects-base-class
 git checkout -b chore/update-playwright-version
-git checkout -b perf/bank-load-test-thresholds
+git checkout -b perf/hotel-spike-test-thresholds
 git checkout -b docs/readme-professional-rewrite
 ```
 
@@ -315,8 +312,8 @@ git push origin --tags
 
 | Layer | Strategy |
 |-------|----------|
-| E2E Tests | Sharded: shard 1/3 → market · shard 2/3 → hotel + bank · shard 3/3 → sandbox + tasktracker |
-| API Tests | Parallel by module: market, hotel, bank run concurrently |
+| E2E Tests | Sharded: shard 1/3 → market · shard 2/3 → hotel + · shard 3/3 → sandbox + tasktracker |
+| API Tests | Parallel by module: market, hotel,  |
 | K6 Tests | Sequential — performance tests must not run concurrently |
 
 ### 6.3 Required GitHub Secrets
@@ -408,7 +405,6 @@ npm install -g allure-commandline
     "test:api":          "playwright test --config=config/playwright.api.config.ts src/api/",
     "test:smoke":        "playwright test --grep @smoke",
     "test:perf":         "k6 run src/performance/scenarios/market-load.js",
-    "test:perf:stress":  "k6 run src/performance/scenarios/bank-stress.js",
     "report:generate":   "allure generate reports/allure-results -o reports/allure-report --clean",
     "report:open":       "allure open reports/allure-report",
     "report:serve":      "allure serve reports/allure-results",
@@ -581,15 +577,14 @@ Reset:     200
 [✅] Professional README
 ```
 
-### Sprint 3 — Hotel + Bank 🔲 In Progress
+### Sprint 3 — Hotel 🔲 In Progress
 
 ```
 [✅] Page Objects: HotelPage, BookingPage, BankPage
 [✅] E2E tests: Hotel booking lifecycle
 [✅] API tests: Hotel — rooms, bookings, reviews
-[ ] API tests: Bank — accounts, transfers, edge cases
 [ ] K6: Hotel spike test + Bank stress test
-[ ] Pipeline: api-tests.yml (hotel + bank modules)
+[ ] Pipeline: api-tests.yml (hotel)
 [ ] Pipeline: performance-tests.yml
 ```
 

@@ -279,15 +279,17 @@ Regex:   /^HB\d{8}-[A-Z0-9]{6}$/
 
 **Query params — `GET /api/hotel/availability`:**
 
-```
-property_id=uuid           // required
-check_in=2026-07-01        // required — YYYY-MM-DD
-check_out=2026-07-03       // required — YYYY-MM-DD
-```
+property_id=uuid // required — string($uuid)
+check_in_date=2026-07-01 // required — YYYY-MM-DD
+check_out_date=2026-07-03 // required — YYYY-MM-DD
 
-> 🆕 Newly documented endpoint — not covered by automated tests yet.
-> Exact response shape and validation rules to be confirmed once we
-> write `TC-H-API` cases for it.
+
+> ⚠️ **Corrected:** the query params are `check_in_date` and
+> `check_out_date`, **not** `check_in` and `check_out` as earlier drafts
+> of this document stated. Confirmed against the live Swagger UI at
+> `/hotel/docs`. Response returns available room types with counts (200)
+> or 400 on invalid dates — exact response body shape still to be
+> confirmed once we write `TC-H-API` cases for it.
 
 ### 6.5 Reviews
 

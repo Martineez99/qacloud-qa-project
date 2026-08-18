@@ -1,0 +1,9 @@
+{
+  "statusFilters": ["", "PENDING", "CONFIRMED", "CHECKED_IN", "CHECKED_OUT", "CANCELLED", "NO_SHOW"],
+  "availabilityDateOffsets": [
+    { "checkInOffsetDays": 3,  "checkOutOffsetDays": 5  },
+    { "checkInOffsetDays": 7,  "checkOutOffsetDays": 9  },
+    { "checkInOffsetDays": 14, "checkOutOffsetDays": 16 },
+    { "checkInOffsetDays": 30, "checkOutOffsetDays": 33 }
+  ]
+}

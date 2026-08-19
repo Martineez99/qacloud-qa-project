@@ -13,6 +13,13 @@
 #     Ejecutar en paralelo agota stock, resetea catálogo y genera
 #     falsos negativos en ambas suites. workflow_run garantiza
 #     que E2E termina antes de que K6 empiece a martillear.
+#
+# ⚠️  k6-hotel-spike usa needs: k6-market-baseline para forzar
+#     secuencialidad (§6.2 QA_PROJECT_ARCHITECTURE.md: "K6 Tests:
+#     Sequential — performance tests must not run concurrently").
+#     Ambos jobs comparten la misma QACLOUD_API_KEY; correrlos en
+#     paralelo tendría el mismo problema de interferencia que ya
+#     resuelve workflow_run frente a E2E/API.
 
 name: Performance Tests
 
@@ -75,5 +82,48 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: k6-market-baseline-results
+          path: k6-results/
+          retention-days: 30
+
+  k6-hotel-spike:
+    name: Hotel Spike Test
+    runs-on: ubuntu-latest
+    needs: k6-market-baseline   # fuerza orden: Market primero, Hotel después
+
+    env:
+      QACLOUD_BASE_URL: ${{ secrets.QACLOUD_BASE_URL }}
+      QACLOUD_API_KEY:  ${{ secrets.QACLOUD_API_KEY }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Install K6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring \
+            --keyring /usr/share/keyrings/k6-archive-keyring.gpg \
+            --keyserver hkp://keyserver.ubuntu.com:80 \
+            --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" \
+            | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install k6
+
+      # A diferencia de Market, aquí NO hay un step de reset por curl:
+      # el reset de Hotel (y la captura de property_ids/room_type_ids)
+      # ocurre dentro de setup() en el propio hotel-spike.js, porque
+      # necesitamos encadenar ambas operaciones atómicamente
+      # (ver docs/HOTEL_PERFORMANCE_PLAN.md §4.1/§4.2/§7).
+      - name: Run Hotel Spike Test
+        run: k6 run src/performance/scenarios/hotel-spike.js
+
+      - name: Upload K6 results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: k6-hotel-spike-results
           path: k6-results/
           retention-days: 30

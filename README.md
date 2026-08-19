@@ -66,6 +66,7 @@ This is not a tutorial or a course exercise. It is a **real-world test automatio
 | Scenario | File | Profile | Status |
 |----------|------|---------|--------|
 | Market baseline load | `performance/scenarios/market-load.js` | 50 VUs · 7 min | ✅ Done |
+| Hotel spike test | `performance/scenarios/hotel-spike.js` | 500 VUs spike · 3 min | ✅ Done |
 
 ### CI/CD — GitHub Actions
 
@@ -290,9 +291,9 @@ Sprint 2 (Market app) is complete. Next phases:
 
 ```
 Sprint 3 — Hotel
-  [ ] Hotel E2E: booking lifecycle
-  [ ] Hotel API: rooms, bookings, reviews
-  [ ] K6: hotel spike test
+  [✅] Hotel E2E: booking lifecycle
+  [✅] Hotel API: rooms, bookings, reviews
+  [✅] K6: hotel spike test
 
 Sprint 4 — Advanced Patterns
   [ ] Chaos testing (Crypto Simulator — WebSocket)

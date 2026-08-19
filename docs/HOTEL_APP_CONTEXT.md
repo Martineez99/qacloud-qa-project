@@ -280,15 +280,23 @@ Regex:   /^HB\d{8}-[A-Z0-9]{6}$/
 **Query params — `GET /api/hotel/availability`:**
 
 property_id=uuid // required — string($uuid)
+room_type_id=uuid // required — string($uuid)
 check_in_date=2026-07-01 // required — YYYY-MM-DD
 check_out_date=2026-07-03 // required — YYYY-MM-DD
 
 
-> ⚠️ **Corrected:** the query params are `check_in_date` and
-> `check_out_date`, **not** `check_in` and `check_out` as earlier drafts
-> of this document stated. Confirmed against the live Swagger UI at
-> `/hotel/docs`. Response returns available room types with counts (200)
-> or 400 on invalid dates — exact response body shape still to be
+> ⚠️ **Corrected (×2):**
+> 1. The query params are `check_in_date` and `check_out_date`, **not**
+>    `check_in` and `check_out` as earlier drafts of this document stated.
+> 2. `room_type_id` is also **required** — the Swagger UI at `/hotel/docs`
+>    does not list it as a parameter, but the server returns 400 without
+>    it: `"Property ID, room type ID, check-in date, and check-out date
+>    are required"`. This is a genuine discrepancy between the documented
+>    Swagger spec and the server's actual validation, discovered while
+>    building the K6 spike test (`docs/HOTEL_PERFORMANCE_PLAN.md` §10.3).
+>
+> Response returns available room types with counts (200) or 400 on
+> invalid dates/missing params. Exact response body shape still to be
 > confirmed once we write `TC-H-API` cases for it.
 
 ### 6.5 Reviews

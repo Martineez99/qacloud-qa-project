@@ -127,20 +127,20 @@ Para lo que sí es fijo y conocido de antemano (igual que Market varía
 
 ## 5. Thresholds propuestos — `hotelThresholds` en `sla-config.js`
 
-> ⚠️ Valores **iniciales/hipótesis**, no medidos aún. Práctica recomendada:
-> primera ejecución con thresholds permisivos (o en modo observación) para
-> capturar una baseline real, y ajustar después — igual que se validó
-> `marketThresholds` en su momento.
+> ✅ **Actualizado con datos reales** tras la ejecución del spike completo
+> (ver §10). Los valores de esta tabla son los que originalmente se
+> propusieron como hipótesis — la tabla de §10 tiene los valores finales
+> calibrados, que son los que están realmente en `sla-config.js`.
 
-| Métrica | Umbral propuesto | Razonamiento |
+| Métrica | Umbral inicial (hipótesis) | Razonamiento original |
 |---|---|---|
-| `http_req_duration` (global) | `p(95)<3000`, `p(99)<4500` | Más laxo que Market (2000/3000) porque un spike test asume degradación bajo pico |
-| `http_req_failed` (global) | `rate<0.03` | Se tolera algo más de error que en load test (Market: <0.01), pero no deriva |
-| `hotel_error_rate` (custom, checks) | `rate<0.03` | Igual criterio que el global |
+| `http_req_duration` (global) | `p(95)<3000`, `p(99)<4500` | Más laxo que Market porque se asume degradación bajo pico |
+| `http_req_failed` (global) | `rate<0.03` | Se tolera algo más de error que en load test |
+| `hotel_error_rate` (custom) | `rate<0.03` | Igual criterio que el global |
 | `hotel_list_properties_duration` | `p(95)<1000ms` | Dataset pequeño (5 properties tras reset) |
 | `hotel_list_room_types_duration` | `p(95)<1200ms` | Dataset algo mayor (14 room types tras reset) |
-| `hotel_list_bookings_duration` | `p(95)<800ms` | Dataset vacío/mínimo tras reset — debería ser muy rápido |
-| `hotel_check_availability_duration` | `p(95)<1800ms` | Endpoint más nuevo, con lógica de cálculo de fechas, sin baseline previa |
+| `hotel_list_bookings_duration` | `p(95)<800ms` | Dataset vacío/mínimo tras reset |
+| `hotel_check_availability_duration` | `p(95)<1800ms` | Endpoint nuevo, sin baseline previa |
 
 ## 6. Estructura de archivos a crear
 
@@ -215,11 +215,69 @@ k6-hotel-spike:
 ## 9. Próximos pasos (una sesión cada uno, según lo acordado)
 
 1. ✅ Este documento de plan
-2. 🔲 Crear `src/performance/data/hotel-test-data.json`
-3. 🔲 Añadir `hotelThresholds` a `src/performance/thresholds/sla-config.js`
-4. 🔲 Escribir `src/performance/scenarios/hotel-spike.js`
+2. ✅ `src/performance/data/hotel-test-data.json`
+3. ✅ `hotelThresholds` en `src/performance/thresholds/sla-config.js`
+4. ✅ `src/performance/scenarios/hotel-spike.js`
 5. 🔲 Añadir job `k6-hotel-spike` a `.github/workflows/performance-tests.yml`
 6. 🔲 Añadir script `test:perf:hotel` a `package.json`
 7. 🔲 Actualizar tablas de cobertura en `README.md` y roadmap Sprint 3 en
    `QA_PROJECT_ARCHITECTURE.md` (marcar "K6: Hotel spike test" como hecho)
 8. 🔲 Abrir PR hacia `develop`
+
+## 10. Resultados de la primera ejecución real (2026-08-19)
+
+Ejecución completa del perfil de carga definido en §2, contra `qacloud.dev`
+real, con la API key de desarrollo.
+
+### 10.1 Resumen
+
+| Métrica | Valor real |
+|---|---|
+| Total de requests | 11.898 |
+| `checks_succeeded` | **100.00%** (11.898 / 11.898) |
+| `http_req_failed` | **0.00%** |
+| `http_req_duration` — mediana | ~1.2-1.4s |
+| `http_req_duration` — p90 | ~7.6-7.9s |
+| `http_req_duration` — p95 | ~8.5-9.1s (según endpoint) |
+| `http_req_duration` — p99 | ~10.7s |
+| `http_req_duration` — máximo puntual | ~15.5s |
+
+### 10.2 Hallazgos
+
+1. **Resiliencia funcional excelente:** en casi 12.000 requests bajo un
+   pico de 500 VUs simultáneos, la API **nunca devolvió un error** (ni
+   4xx ni 5xx, aparte de los esperables 400 que ya resolvimos en el
+   desarrollo del script — ver §10.3). El sistema no se cae bajo presión.
+2. **Degradación de latencia significativa bajo el pico:** la mediana se
+   mantiene razonable (~1.2-1.4s) pero las colas se disparan (p95 ~9s,
+   p99 ~10.7s, máximos de hasta 15.5s). Esto es información valiosa sobre
+   la capacidad real del sistema bajo concurrencia alta.
+3. **Los 4 endpoints degradan de forma casi idéntica** (p95 entre 8.51s y
+   9.06s, una diferencia de menos de 600ms entre el más rápido y el más
+   lento). Esto sugiere que el cuello de botella **no es de una query en
+   particular**, sino de capacidad general del servidor/infraestructura
+   bajo alta concurrencia — coherente con un entorno de práctica QA, no
+   una infraestructura de producción dimensionada para 500 VUs.
+4. **Los thresholds iniciales (§5) eran demasiado optimistas** — se
+   basaban en hipótesis sin datos reales, tal y como se advirtió en su
+   momento. Se recalibraron con esta ejecución (ver `sla-config.js` para
+   los valores finales, con ~15-20% de margen sobre lo observado).
+
+### 10.3 Bugs / discrepancias encontradas durante el desarrollo
+
+Ninguno de estos afecta al resultado final (ya corregidos en
+`hotel-spike.js`), pero quedan documentados porque son hallazgos de QA
+reales sobre la propia aplicación bajo prueba, no solo sobre el test:
+
+1. **`GET /api/hotel/availability` usa `check_in_date` / `check_out_date`**,
+   no `check_in` / `check_out` como documentaba `HOTEL_APP_CONTEXT.md`
+   §6.4. Pendiente de corregir el .md (ver checklist más abajo).
+2. **`GET /api/hotel/availability` exige también `room_type_id`** como
+   parámetro requerido, pero el Swagger UI no lo lista entre los
+   parámetros del endpoint — solo se descubre en tiempo de ejecución vía
+   el mensaje de error 400: `"Property ID, room type ID, check-in date,
+   and check-out date are required"`. Es una discrepancia real entre el
+   Swagger documentado y la validación del servidor. Pendiente de anotar
+   en `HOTEL_APP_CONTEXT.md` §6.4 como corrección, igual que las
+   correcciones anteriores del documento (PATCH vs PUT, `rating` vs
+   `overall_rating`).

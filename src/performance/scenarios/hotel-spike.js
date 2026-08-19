@@ -30,12 +30,21 @@
  *     city (no usados aquí a propósito: el spike test quiere el listado
  *     completo, no filtrado).
  *
+ * ✅ CONFIRMADO en ejecución real contra el servidor (no en Swagger):
+ *   - GET /api/hotel/availability EXIGE también room_type_id, aunque no
+ *     aparece listado como parámetro en el Swagger UI compartido. El
+ *     servidor devuelve 400 con:
+ *     {"error":"Property ID, room type ID, check-in date, and
+ *      check-out date are required"}
+ *     Discrepancia Swagger vs. validación real — pendiente de anotar en
+ *     HOTEL_APP_CONTEXT.md §6.4 como hallazgo de QA.
+ *
  * ⚠️ SUPUESTO SIN VERIFICAR TODAVÍA: el shape exacto del body de
- * respuesta (¿array plano o { properties: [...] }?) — Swagger UI no
- * mostró el "Example Value" en lo compartido. El helper extractArray()
- * de abajo soporta ambos casos como red de seguridad, pero confírmalo
- * en tu primera ejecución en local (ver instrucciones más abajo) y
- * ajusta si hace falta.
+ * respuesta de properties y room-types (¿array plano o { properties:
+ * [...] } / { room_types: [...] }?) — Swagger UI no mostró el "Example
+ * Value". El helper extractArray() soporta varias variantes como red de
+ * seguridad, y setup() lanza un error explícito si no logra extraer IDs,
+ * así que si el test arranca sin fallar aquí, el shape era compatible.
  */
 
 import http from 'k6/http';
@@ -79,12 +88,16 @@ function randomItem(arr) {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-// Soporta tanto un array plano como un objeto envoltorio ({ properties: [...] },
+// Soporta tanto un array plano como un objeto envoltorio con distintas
+// claves posibles ({ properties: [...] }, { room_types: [...] },
 // { data: [...] }, etc.) hasta que se confirme el shape real contra Swagger.
-function extractArray(body, wrapperKey) {
+function extractArray(body, candidateKeys) {
   if (Array.isArray(body)) return body;
-  if (body && Array.isArray(body[wrapperKey])) return body[wrapperKey];
-  if (body && Array.isArray(body.data)) return body.data;
+  if (!body) return [];
+  for (const key of candidateKeys) {
+    if (Array.isArray(body[key])) return body[key];
+  }
+  if (Array.isArray(body.data)) return body.data;
   return [];
 }
 
@@ -101,17 +114,50 @@ function dateFromOffset(offsetDays) {
 // (ver docs/HOTEL_PERFORMANCE_PLAN.md §4.1/§4.2 y §7 sobre la diferencia con
 // el step de reset por curl que usa k6-market-baseline).
 export function setup() {
+  // Log de diagnóstico: si QACLOUD_API_KEY no llegó (undefined), lo vemos
+  // aquí antes de disparar ninguna request — evita perder tiempo con
+  // errores 401 silenciosos.
+  if (!API_KEY) {
+    console.error(
+      'setup(): QACLOUD_API_KEY no está definida en el entorno. ' +
+      'Verifica $env:QACLOUD_API_KEY en la MISMA ventana de PowerShell ' +
+      'donde ejecutas "k6 run".'
+    );
+  }
+  console.log(`setup(): BASE_URL=${BASE_URL} API_KEY set=${Boolean(API_KEY)}`);
+
   const resetRes = http.post(`${BASE_URL}/api/hotel/reset`, null, { headers });
-  check(resetRes, {
+  const resetOk = check(resetRes, {
     'setup: reset status is 200': (r) => r.status === 200,
   });
+  if (!resetOk) {
+    console.error(
+      `setup(): reset falló — status ${resetRes.status}, body: ${resetRes.body}`
+    );
+  }
 
   const propsRes = http.get(`${BASE_URL}/api/hotel/properties`, { headers });
-  check(propsRes, {
+  const propsOk = check(propsRes, {
     'setup: properties status is 200': (r) => r.status === 200,
   });
+  if (!propsOk) {
+    console.error(
+      `setup(): GET properties falló — status ${propsRes.status}, body: ${propsRes.body}`
+    );
+  }
 
-  const properties = extractArray(propsRes.json(), 'properties');
+  let propertiesBody;
+  try {
+    propertiesBody = propsRes.json();
+  } catch (e) {
+    console.error(
+      `setup(): la respuesta de properties no es JSON válido — ` +
+      `probablemente un error 401/404 con body HTML. status=${propsRes.status}`
+    );
+    propertiesBody = [];
+  }
+
+  const properties = extractArray(propertiesBody, ['properties']);
   const propertyIds = properties.map((p) => p.id).filter(Boolean);
 
   if (propertyIds.length === 0) {
@@ -124,7 +170,58 @@ export function setup() {
     );
   }
 
-  return { propertyIds };
+  // ✅ CORRECCIÓN (encontrada en ejecución real, no en Swagger): el
+  // Swagger de /api/hotel/availability solo lista property_id,
+  // check_in_date y check_out_date como parámetros — pero el servidor
+  // devuelve 400 exigiendo TAMBIÉN room_type_id:
+  //   {"error":"Property ID, room type ID, check-in date, and
+  //    check-out date are required"}
+  // Pendiente de anotar esta discrepancia en HOTEL_APP_CONTEXT.md §6.4
+  // (Swagger incompleto respecto a la validación real del servidor).
+  const roomTypesRes = http.get(`${BASE_URL}/api/hotel/room-types`, { headers });
+  const roomTypesOk = check(roomTypesRes, {
+    'setup: room-types status is 200': (r) => r.status === 200,
+  });
+  if (!roomTypesOk) {
+    console.error(
+      `setup(): GET room-types falló — status ${roomTypesRes.status}, body: ${roomTypesRes.body}`
+    );
+  }
+
+  let roomTypesBody;
+  try {
+    roomTypesBody = roomTypesRes.json();
+  } catch (e) {
+    console.error(
+      `setup(): la respuesta de room-types no es JSON válido. status=${roomTypesRes.status}`
+    );
+    roomTypesBody = [];
+  }
+
+  const roomTypes = extractArray(roomTypesBody, ['room_types', 'roomTypes']);
+  const roomTypeIds = roomTypes.map((rt) => rt.id).filter(Boolean);
+
+  // Agrupamos room_type_id por property_id para que availability consulte
+  // combinaciones coherentes (un room type que sí pertenece a la property
+  // consultada), no pares aleatorios sin relación.
+  const roomTypesByProperty = {};
+  roomTypes.forEach((rt) => {
+    const pid = rt.property_id || (rt.property && rt.property.id);
+    if (!pid || !rt.id) return;
+    if (!roomTypesByProperty[pid]) roomTypesByProperty[pid] = [];
+    roomTypesByProperty[pid].push(rt.id);
+  });
+
+  if (roomTypeIds.length === 0) {
+    throw new Error(
+      'setup(): no se obtuvo ningún room_type_id. ' +
+      'GET /api/hotel/availability necesita este parámetro (confirmado en ' +
+      'ejecución real, no documentado en Swagger) — revisa el shape real ' +
+      'de GET /api/hotel/room-types.'
+    );
+  }
+
+  return { propertyIds, roomTypeIds, roomTypesByProperty };
 }
 
 // ─── Escenario A: listar properties (25%) ──────────────────────────────────
@@ -184,21 +281,37 @@ function listBookings() {
 }
 
 // ─── Escenario D: consultar disponibilidad (20%) ──────────────────────────
-// Requiere un property_id real, capturado en setup() y recibido como
-// parámetro `data` en la función principal.
-function checkAvailability(propertyIds) {
+// Requiere property_id + room_type_id reales, capturados en setup() y
+// recibidos en `data`. Preferimos combinaciones coherentes (un room type
+// que sí pertenece a la property consultada) vía roomTypesByProperty; si
+// alguna property no tuviera room types mapeados (por si el campo
+// property_id del room type resultara tener otro nombre), caemos a un
+// room_type_id cualquiera del pool general como red de seguridad.
+function checkAvailability(data) {
   group('Check Availability', () => {
-    const propertyId = randomItem(propertyIds);
+    const propertiesWithRoomTypes = Object.keys(data.roomTypesByProperty);
+
+    let propertyId, roomTypeId;
+    if (propertiesWithRoomTypes.length > 0) {
+      propertyId = randomItem(propertiesWithRoomTypes);
+      roomTypeId = randomItem(data.roomTypesByProperty[propertyId]);
+    } else {
+      propertyId = randomItem(data.propertyIds);
+      roomTypeId = randomItem(data.roomTypeIds);
+    }
+
     const range = randomItem(testData.availabilityDateOffsets);
     const checkIn = dateFromOffset(range.checkInOffsetDays);
     const checkOut = dateFromOffset(range.checkOutOffsetDays);
 
-    // ⚠️ Nombres de parámetro CORREGIDOS: el Swagger real usa
-    // check_in_date / check_out_date, no check_in / check_out como
-    // documentaba (incorrectamente) HOTEL_APP_CONTEXT.md §6.4.
+    // ⚠️ Nombres de parámetro CORREGIDOS respecto a HOTEL_APP_CONTEXT.md
+    // §6.4: check_in_date / check_out_date (no check_in / check_out), y
+    // room_type_id añadido (exigido por el servidor pero ausente del
+    // Swagger documentado).
     const url =
       `${BASE_URL}/api/hotel/availability` +
-      `?property_id=${propertyId}&check_in_date=${checkIn}&check_out_date=${checkOut}`;
+      `?property_id=${propertyId}&room_type_id=${roomTypeId}` +
+      `&check_in_date=${checkIn}&check_out_date=${checkOut}`;
 
     const res = http.get(url, {
       headers,
@@ -209,13 +322,24 @@ function checkAvailability(propertyIds) {
       'check availability: status is 200': (r) => r.status === 200,
     });
 
+    // Log de diagnóstico muestreado (1%): con 500 VUs y miles de fallos
+    // posibles, loguear el 100% inundaría la consola. Con ~1% ya sacamos
+    // decenas de muestras suficientes para ver la causa real si vuelve a
+    // fallar por algo nuevo.
+    if (!httpSuccess && Math.random() < 0.01) {
+      console.error(
+        `check availability falló — status ${res.status}, url: ${url}, body: ${res.body}`
+      );
+    }
+
     checkAvailabilityTrend.add(res.timings.duration);
     errorRate.add(!httpSuccess);
   });
 }
 
 // ─── Función principal: K6 la ejecuta en bucle por cada VU ────────────────
-// Recibe `data`, el valor devuelto por setup() (aquí, { propertyIds }).
+// Recibe `data`, el valor devuelto por setup()
+// (propertyIds, roomTypeIds, roomTypesByProperty).
 export default function (data) {
   const roll = Math.random();
 
@@ -226,7 +350,7 @@ export default function (data) {
   } else if (roll < 0.80) {
     listBookings();
   } else {
-    checkAvailability(data.propertyIds);
+    checkAvailability(data);
   }
 
   // Think time: entre 1 y 3 segundos, igual que market-load.js

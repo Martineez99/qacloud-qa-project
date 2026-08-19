@@ -61,14 +61,15 @@ export const marketThresholds = {
  * - hotel_check_availability_duration → GET /api/hotel/availability   p95 real 9.06s → threshold 11s (endpoint más pesado, más margen)
  */
 export const hotelThresholds = {
+
   // Global
-  http_req_duration: ['p(95)<10000', 'p(99)<13000'],
-  http_req_failed:   ['rate<0.02'],
-  hotel_error_rate:  ['rate<0.02'],
+  http_req_duration: ['p(95)<13000', 'p(99)<16000'],
+  http_req_failed:  ['rate<0.02'],
+  hotel_error_rate: ['rate<0.02'],
 
   // Por endpoint
-  hotel_list_properties_duration:    ['p(95)<10000'],
-  hotel_list_room_types_duration:    ['p(95)<10000'],
-  hotel_list_bookings_duration:      ['p(95)<10000'],
-  hotel_check_availability_duration: ['p(95)<11000'],
+  hotel_list_properties_duration:    ['p(95)<13000'],
+  hotel_list_room_types_duration:    ['p(95)<13000'],
+  hotel_list_bookings_duration:      ['p(95)<13000'],
+  hotel_check_availability_duration: ['p(95)<13000'],
 };

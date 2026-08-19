@@ -6,7 +6,7 @@
 # ⚠️  pull_request → main se gestiona en ci-pr-main.yml (flujo serializado
 #     api-tests → e2e-full → allure combinado). No duplicar aquí.
 
-name: API Tests — Market
+name: API Tests — Market - Hotel
 
 on:
   pull_request:

@@ -145,16 +145,15 @@ jobs:
           path: test-results/
           retention-days: 7
 
-  # ── JOB 3: K6 Performance ────────────────────────────────────────
-  # Necesita e2e-full. K6 con 50+ VUs comparte API key con los otros jobs;
-  # ejecutar en paralelo con E2E agotaría stock y generaría falsos negativos.
-  # Reset explícito antes de K6: el catálogo debe estar completo para que
-  # las requests sean representativas de carga real.
-  k6-performance:
-    name: Market Baseline Load Test
+  # ── JOB 4: K6 Hotel Performance ─────────────────────────────────
+  # Se ejecuta después del Market Baseline Load Test.
+  # Comparte API key con el resto de la regresión, por lo que se mantiene
+  # serializado para evitar interferencias entre cargas.
+  k6-hotel-performance:
+    name: Hotel Spike Load Test
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    needs: e2e-full
+    needs: k6-performance
     if: always()
 
     env:
@@ -177,20 +176,20 @@ jobs:
           sudo apt-get update
           sudo apt-get install k6
 
-      - name: Reset test data before load test
+      - name: Reset test data before Hotel load test
         run: |
           curl -s -o /dev/null -w "%{http_code}" \
             -X POST "${{ secrets.QACLOUD_BASE_URL }}/api/reset" \
             -H "Authorization: ${{ secrets.QACLOUD_API_KEY }}"
 
-      - name: Run Market Baseline Load Test
-        run: k6 run src/performance/scenarios/market-load.js
+      - name: Run Hotel Spike Load Test
+        run: k6 run src/performance/scenarios/hotel-spike.js
 
-      - name: Upload K6 results
+      - name: Upload K6 Hotel results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: k6-results-nightly-${{ github.run_number }}
+          name: k6-hotel-results-nightly-${{ github.run_number }}
           path: k6-results/
           retention-days: 30
 

@@ -37,7 +37,7 @@ jobs:
   # Primer paso. Rápido (~3-5 min), sin browser.
   # --workers=1 porque los tests comparten estado en el servidor.
   api-tests:
-    name: API Tests — Market
+    name: API Tests — Market + Hotel
     runs-on: ubuntu-latest
     timeout-minutes: 15
 

@@ -290,7 +290,7 @@ git push origin <your-branch-name>
 
 ```powershell
 git tag -a v1.0.0 -m "Initial suite: Market E2E + API + Performance"
-git tag -a v1.1.0 -m "Add Hotel E2E + Bank API + K6 stress tests"
+git tag -a v1.1.0 -m "Add Hotel E2E + API + K6 spike test"
 git push origin --tags
 ```
 
@@ -313,7 +313,7 @@ git push origin --tags
 | Layer | Strategy |
 |-------|----------|
 | E2E Tests | Sharded: shard 1/3 → market · shard 2/3 → hotel + · shard 3/3 → sandbox + tasktracker |
-| API Tests | Parallel by module: market, hotel,  |
+| API Tests | Sequential (--workers=1): market and hotel share a single user environment/API key    |
 | K6 Tests | Sequential — performance tests must not run concurrently |
 
 ### 6.3 Required GitHub Secrets
@@ -577,15 +577,15 @@ Reset:     200
 [✅] Professional README
 ```
 
-### Sprint 3 — Hotel 🔲 In Progress
+### Sprint 3 — Hotel ✅ In Progress
 
 ```
 [✅] Page Objects: HotelPage, BookingPage, BankPage
 [✅] E2E tests: Hotel booking lifecycle
 [✅] API tests: Hotel — rooms, bookings, reviews
 [✅] K6: Hotel spike test
-[ ] Pipeline: api-tests.yml (hotel)
-[ ] Pipeline: performance-tests.yml
+[✅] Pipeline: api-tests.yml (hotel)
+[✅] Pipeline: performance-tests.yml
 ```
 
 ### Sprint 4 — Advanced Patterns 🔲 Planned

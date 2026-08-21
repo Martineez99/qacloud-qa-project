@@ -287,14 +287,9 @@ Configure in **Settings → Secrets and variables → Actions**:
 
 ## Roadmap
 
-Sprint 2 (Market app) is complete. Next phases:
+Sprint 2 and 3 (Market, Hotel) are complete. Next phase:
 
 ```
-Sprint 3 — Hotel
-  [✅] Hotel E2E: booking lifecycle
-  [✅] Hotel API: rooms, bookings, reviews
-  [✅] K6: hotel spike test
-
 Sprint 4 — Advanced Patterns
   [ ] Chaos testing (Crypto Simulator — WebSocket)
   [ ] Security test suite (auth bypass, injection)

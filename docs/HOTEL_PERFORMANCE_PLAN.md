@@ -1,111 +1,111 @@
 # Hotel Performance Testing — Plan (K6 Spike Test)
 
-> **Estado:** 🟡 Planificado — pendiente de implementación
-> **Rama:** `perf/hotel-spike-test-thresholds`
-> **Relacionado con:** `docs/HOTEL_APP_CONTEXT.md`, `docs/QA_PROJECT_ARCHITECTURE.md` §4.2, §6.2
-> **Precede a:** `src/performance/scenarios/hotel-spike.js`
+> **Status:** 🟡 Planned — pending implementation
+> **Branch:** `perf/hotel-spike-test-thresholds`
+> **Related to:** `docs/HOTEL_APP_CONTEXT.md`, `docs/QA_PROJECT_ARCHITECTURE.md` §4.2, §6.2
+> **Precedes:** `src/performance/scenarios/hotel-spike.js`
 
-Este documento define el diseño del spike test de K6 para la aplicación Hotel
-**antes** de escribir ningún código, siguiendo la convención ya establecida
-por `src/performance/scenarios/market-load.js`.
+This document defines the design of the K6 spike test for the Hotel
+application **before** writing any code, following the convention already
+established by `src/performance/scenarios/market-load.js`.
 
 ---
 
-## 1. Objetivo
+## 1. Objective
 
-Medir cómo responde la Hotel API a un **pico brusco de concurrencia** (spike
-test, distinto de un load test sostenido como el de Market) y si el sistema
-se recupera correctamente cuando la carga baja. Foco en:
+Measure how the Hotel API responds to a **sudden spike in concurrency**
+(a spike test, distinct from a sustained load test like Market's) and
+whether the system recovers correctly once the load drops. Focus areas:
 
-- Tiempos de respuesta (p95/p99) por endpoint durante el pico
-- Tasa de error bajo estrés máximo
-- Capacidad de recuperación tras el pico (no solo el pico en sí)
+- Response times (p95/p99) per endpoint during the spike
+- Error rate under maximum stress
+- Recovery capacity after the spike (not just the spike itself)
 
-## 2. Tipo de test y perfil de carga
+## 2. Test type and load profile
 
-Spec de referencia (`QA_PROJECT_ARCHITECTURE.md` §4.2): **Spike test · 500 VUs
-en 30s · 3 min de duración total**.
+Reference spec (`QA_PROJECT_ARCHITECTURE.md` §4.2): **Spike test · 500 VUs
+in 30s · 3 min total duration**.
 
-| Etapa | Duración | De → A VUs | Propósito |
+| Stage | Duration | From → To VUs | Purpose |
 |---|---|---|---|
-| Baseline | 10s | 0 → 20 | Calentamiento, línea base antes del pico |
-| **Spike** | **30s** | **20 → 500** | El pico brusco (coincide con la spec) |
-| Sustain | 60s | 500 constantes | Ventana de medición bajo estrés máximo |
-| Recovery | 60s | 500 → 20 | ¿Se recupera el sistema al bajar la carga? |
-| Cooldown | 20s | 20 constantes | Confirmar estabilidad tras el pico |
+| Baseline | 10s | 0 → 20 | Warm-up, baseline before the spike |
+| **Spike** | **30s** | **20 → 500** | The sudden spike (matches the spec) |
+| Sustain | 60s | 500 constant | Measurement window under maximum stress |
+| Recovery | 60s | 500 → 20 | Does the system recover once load drops? |
+| Cooldown | 20s | 20 constant | Confirm stability after the spike |
 | **Total** | **180s (3 min)** | | |
 
 ```javascript
-// Referencia para options.stages en hotel-spike.js
+// Reference for options.stages in hotel-spike.js
 stages: [
   { duration: '10s', target: 20  },  // baseline
   { duration: '30s', target: 500 },  // SPIKE
-  { duration: '60s', target: 500 },  // sustain bajo estrés
+  { duration: '60s', target: 500 },  // sustain under stress
   { duration: '60s', target: 20  },  // recovery
-  { duration: '20s', target: 20  },  // cooldown / confirmación
+  { duration: '20s', target: 20  },  // cooldown / confirmation
 ]
 ```
 
-## 3. Endpoints y distribución de tráfico (solo lectura — GET)
+## 3. Endpoints and traffic distribution (read-only — GET)
 
-Decisión: **solo endpoints GET**, sin creación de bookings. Un spike test
-mide resiliencia y concurrencia, no necesita generar efectos secundarios de
-escritura para ser válido.
+Decision: **GET endpoints only**, no booking creation. A spike test measures
+resilience and concurrency, and does not need to generate write-side
+side effects to be valid.
 
-| Endpoint | % tráfico | Justificación |
+| Endpoint | % traffic | Rationale |
 |---|---|---|
-| `GET /api/hotel/properties` | 25% | Tab Properties + alimenta selects dinámicos |
-| `GET /api/hotel/room-types` | 25% | Tab Room Types + select dinámico tras elegir property |
-| `GET /api/hotel/bookings` | 30% | Tab más usada de la app; alimenta el stats dashboard |
-| `GET /api/hotel/availability` | 20% | Endpoint documentado recientemente, sin cobertura de tests aún (`HOTEL_APP_CONTEXT.md` §6.4) |
+| `GET /api/hotel/properties` | 25% | Properties tab + feeds dynamic selects |
+| `GET /api/hotel/room-types` | 25% | Room Types tab + dynamic select after choosing a property |
+| `GET /api/hotel/bookings` | 30% | Most-used tab in the app; feeds the stats dashboard |
+| `GET /api/hotel/availability` | 20% | Recently documented endpoint, not yet covered by tests (`HOTEL_APP_CONTEXT.md` §6.4) |
 
-> Repartos ajustables tras la primera ejecución si algún endpoint necesita
-> más o menos presión relativa.
+> Distribution is adjustable after the first run if any endpoint needs more
+> or less relative pressure.
 
-## 4. Estrategia de datos
+## 4. Data strategy
 
-### 4.1 Reset antes del test — DECISIÓN CONFIRMADA
+### 4.1 Reset before the test — CONFIRMED DECISION
 
-`POST /api/hotel/reset` se ejecuta **antes** del spike test, igual que hace
-Market con `/api/reset`. Esto es coherente con el principio de estado
-determinista de `QA_PROJECT_ARCHITECTURE.md` §4.3 ("State reset:
-`POST /api/reset` before each suite").
+`POST /api/hotel/reset` runs **before** the spike test, just like Market does
+with `/api/reset`. This is consistent with the deterministic-state principle
+from `QA_PROJECT_ARCHITECTURE.md` §4.3 (*"State reset:
+`POST /api/reset` before each suite"*).
 
-**Consecuencia aceptada:** como el reset de Hotel vacía `bookings` y
-`reviews` a cero (`HOTEL_APP_CONTEXT.md` §2), durante todo el spike test
-`GET /api/hotel/bookings` devolverá una lista vacía o casi vacía, y
-`GET /api/hotel/availability` consultará sobre cero reservas existentes.
-Esto es aceptable porque el objetivo del test es medir **concurrencia y
-latencia del servidor**, no volumen de datos — seguimos ejercitando la
-query real contra la base de datos en cada request, solo que sin filas que
-recorrer. Si en el futuro queremos medir con volumen de datos real, sería
-un test distinto (ver §7, Fuera de alcance).
+**Accepted consequence:** since Hotel's reset empties `bookings` and
+`reviews` to zero (`HOTEL_APP_CONTEXT.md` §2), throughout the entire spike
+test `GET /api/hotel/bookings` will return an empty or near-empty list, and
+`GET /api/hotel/availability` will query against zero existing bookings.
+This is acceptable because the goal of the test is to measure **server
+concurrency and latency**, not data volume — we're still exercising the
+real query against the database on every request, just with no rows to
+traverse. If we want to measure with real data volume in the future, that
+would be a different test (see §7, Out of scope).
 
-### 4.2 IDs dinámicos vía `setup()`
+### 4.2 Dynamic IDs via `setup()`
 
-A diferencia de Market (categorías fijas conocidas de antemano), los
-`property_id` de Hotel son UUIDs dinámicos por usuario/entorno — no se
-pueden hardcodear en un JSON estático. Usamos la función de ciclo de vida
-`setup()` de K6, que corre **una sola vez antes de que arranquen los VUs**:
+Unlike Market (fixed categories known in advance), Hotel's `property_id`
+values are dynamic UUIDs per user/environment — they cannot be hardcoded
+into a static JSON file. We use K6's `setup()` lifecycle function, which
+runs **once, before the VUs start**:
 
 ```javascript
-// Patrón a implementar en hotel-spike.js
+// Pattern to implement in hotel-spike.js
 export function setup() {
   http.post(`${BASE_URL}/api/hotel/reset`, null, { headers });
   const res = http.get(`${BASE_URL}/api/hotel/properties`, { headers });
-  const properties = JSON.parse(res.body).properties; // confirmar shape real en Swagger
+  const properties = JSON.parse(res.body).properties; // confirm actual shape in Swagger
   return { propertyIds: properties.map(p => p.id) };
 }
 
 export default function (data) {
-  // data.propertyIds disponible en cada iteración, de cada VU
+  // data.propertyIds available on every iteration, for every VU
 }
 ```
 
-### 4.3 Datos estáticos — `hotel-test-data.json`
+### 4.3 Static data — `hotel-test-data.json`
 
-Para lo que sí es fijo y conocido de antemano (igual que Market varía
-`category`/`sort`), usamos un JSON estático:
+For what actually is fixed and known in advance (just like Market varies
+`category`/`sort`), we use a static JSON file:
 
 ```json
 {
@@ -119,55 +119,55 @@ Para lo que sí es fijo y conocido de antemano (igual que Market varía
 }
 ```
 
-- `statusFilters` incluye `""` (string vacío) para variar entre llamar a
-  `GET /api/hotel/bookings` con y sin `?status=`.
-- `availabilityDateOffsets` son días relativos a "hoy" (calculados en el
-  script, no fechas absolutas) para que el test siga siendo válido sin
-  importar cuándo se ejecute.
+- `statusFilters` includes `""` (empty string) to vary between calling
+  `GET /api/hotel/bookings` with and without `?status=`.
+- `availabilityDateOffsets` are days relative to "today" (calculated in the
+  script, not absolute dates) so the test remains valid regardless of when
+  it runs.
 
-## 5. Thresholds propuestos — `hotelThresholds` en `sla-config.js`
+## 5. Proposed thresholds — `hotelThresholds` in `sla-config.js`
 
-> ✅ **Actualizado con datos reales** tras la ejecución del spike completo
-> (ver §10). Los valores de esta tabla son los que originalmente se
-> propusieron como hipótesis — la tabla de §10 tiene los valores finales
-> calibrados, que son los que están realmente en `sla-config.js`.
+> ✅ **Updated with real data** after running the full spike test (see §10).
+> The values in this table are what was originally proposed as a hypothesis
+> — the table in §10 has the final calibrated values, which are what's
+> actually in `sla-config.js`.
 
-| Métrica | Umbral inicial (hipótesis) | Razonamiento original |
+| Metric | Initial threshold (hypothesis) | Original rationale |
 |---|---|---|
-| `http_req_duration` (global) | `p(95)<3000`, `p(99)<4500` | Más laxo que Market porque se asume degradación bajo pico |
-| `http_req_failed` (global) | `rate<0.03` | Se tolera algo más de error que en load test |
-| `hotel_error_rate` (custom) | `rate<0.03` | Igual criterio que el global |
-| `hotel_list_properties_duration` | `p(95)<1000ms` | Dataset pequeño (5 properties tras reset) |
-| `hotel_list_room_types_duration` | `p(95)<1200ms` | Dataset algo mayor (14 room types tras reset) |
-| `hotel_list_bookings_duration` | `p(95)<800ms` | Dataset vacío/mínimo tras reset |
-| `hotel_check_availability_duration` | `p(95)<1800ms` | Endpoint nuevo, sin baseline previa |
+| `http_req_duration` (global) | `p(95)<3000`, `p(99)<4500` | Looser than Market, assuming degradation under spike |
+| `http_req_failed` (global) | `rate<0.03` | Slightly more error tolerance than a load test |
+| `hotel_error_rate` (custom) | `rate<0.03` | Same criterion as the global one |
+| `hotel_list_properties_duration` | `p(95)<1000ms` | Small dataset (5 properties after reset) |
+| `hotel_list_room_types_duration` | `p(95)<1200ms` | Slightly larger dataset (14 room types after reset) |
+| `hotel_list_bookings_duration` | `p(95)<800ms` | Empty/minimal dataset after reset |
+| `hotel_check_availability_duration` | `p(95)<1800ms` | New endpoint, no prior baseline |
 
-## 6. Estructura de archivos a crear
+## 6. File structure to create
 
 ```
 src/performance/
-├── scenarios/hotel-spike.js          ← nuevo
-├── thresholds/sla-config.js          ← editar: añadir export hotelThresholds
-└── data/hotel-test-data.json         ← nuevo
+├── scenarios/hotel-spike.js          ← new
+├── thresholds/sla-config.js          ← edit: add hotelThresholds export
+└── data/hotel-test-data.json         ← new
 ```
 
-`package.json` (§8.2 de la arquitectura) — añadir:
+`package.json` (§8.2 of the architecture) — add:
 
 ```json
 "test:perf:hotel": "k6 run src/performance/scenarios/hotel-spike.js"
 ```
 
-## 7. Integración CI — `performance-tests.yml`
+## 7. CI integration — `performance-tests.yml`
 
-Nuevo job `k6-hotel-spike` en el mismo workflow que `k6-market-baseline`,
-con dependencia explícita para garantizar secuencialidad (§6.2: *"K6 Tests:
+New `k6-hotel-spike` job in the same workflow as `k6-market-baseline`,
+with an explicit dependency to guarantee sequencing (§6.2: *"K6 Tests:
 Sequential — performance tests must not run concurrently"*):
 
 ```yaml
 k6-hotel-spike:
   name: Hotel Spike Test
   runs-on: ubuntu-latest
-  needs: k6-market-baseline   # fuerza orden: Market primero, Hotel después
+  needs: k6-market-baseline   # forces order: Market first, Hotel after
   env:
     QACLOUD_BASE_URL: ${{ secrets.QACLOUD_BASE_URL }}
     QACLOUD_API_KEY:  ${{ secrets.QACLOUD_API_KEY }}
@@ -178,13 +178,13 @@ k6-hotel-spike:
         ref: ${{ github.event.workflow_run.head_sha || github.sha }}
     - name: Install K6
       run: |
-        # idéntico al paso de k6-market-baseline
+        # identical to the k6-market-baseline step
     - name: Run Hotel Spike Test
       run: k6 run src/performance/scenarios/hotel-spike.js
-      # Nota: el reset ya NO va como paso de shell separado como en Market,
-      # porque en Hotel el reset se hace dentro de setup() en el propio
-      # script K6 (ver §4.1/4.2) — así garantizamos que el reset y la
-      # captura de property_ids ocurren en el mismo paso atómico.
+      # Note: reset is no longer a separate shell step like in Market,
+      # because in Hotel the reset is done inside the K6 script's own
+      # setup() (see §4.1/4.2) — this guarantees that the reset and the
+      # property_ids capture happen in the same atomic step.
     - name: Upload K6 results
       if: always()
       uses: actions/upload-artifact@v4
@@ -194,90 +194,91 @@ k6-hotel-spike:
         retention-days: 30
 ```
 
-> Diferencia notable respecto a Market: en Market el reset es un `curl` en
-> un step de shell separado, antes de invocar `k6 run`. En Hotel movemos el
-> reset dentro de `setup()` en JavaScript porque necesitamos encadenarlo con
-> la captura de `property_ids` en la misma operación — hacerlo en shell
-> requeriría parsear la respuesta del reset o hacer una llamada extra, lo
-> cual K6 ya resuelve de forma nativa con `setup()`.
+> Notable difference from Market: in Market, the reset is a `curl` in a
+> separate shell step, before invoking `k6 run`. In Hotel, we move the reset
+> inside JavaScript's `setup()` because we need to chain it with capturing
+> `property_ids` in the same operation — doing this in shell would require
+> parsing the reset response or making an extra call, which K6 already
+> resolves natively via `setup()`.
 
-## 8. Fuera de alcance (por ahora)
+## 8. Out of scope (for now)
 
-- Test de volumen de datos real en `bookings`/`availability` (requeriría
-  sembrar datos antes del spike, lo cual contradice la decisión de "solo
-  lectura, con reset determinista" tomada en §4.1)
-- Endpoints de escritura (`POST /api/hotel/bookings`, `PATCH .../status`)
-  bajo carga — candidato para una iteración futura si se decide medir el
-  ciclo de vida de reservas bajo estrés
-- Bank app — fuera de alcance del proyecto por ahora (ver
+- Real data-volume test on `bookings`/`availability` (would require seeding
+  data before the spike, which contradicts the "read-only, with
+  deterministic reset" decision made in §4.1)
+- Write endpoints (`POST /api/hotel/bookings`, `PATCH .../status`) under
+  load — candidate for a future iteration if we decide to measure the
+  booking lifecycle under stress
+- Bank app — out of scope for the project for now (see
   `docs/QA_PROJECT_ARCHITECTURE.md`)
 
-## 9. Próximos pasos (una sesión cada uno, según lo acordado)
+## 9. Next steps (one session each, as agreed)
 
-1. ✅ Este documento de plan
+1. ✅ This plan document
 2. ✅ `src/performance/data/hotel-test-data.json`
-3. ✅ `hotelThresholds` en `src/performance/thresholds/sla-config.js`
+3. ✅ `hotelThresholds` in `src/performance/thresholds/sla-config.js`
 4. ✅ `src/performance/scenarios/hotel-spike.js`
-5. 🔲 Añadir job `k6-hotel-spike` a `.github/workflows/performance-tests.yml`
-6. 🔲 Añadir script `test:perf:hotel` a `package.json`
-7. 🔲 Actualizar tablas de cobertura en `README.md` y roadmap Sprint 3 en
-   `QA_PROJECT_ARCHITECTURE.md` (marcar "K6: Hotel spike test" como hecho)
-8. 🔲 Abrir PR hacia `develop`
+5. 🔲 Add the `k6-hotel-spike` job to `.github/workflows/performance-tests.yml`
+6. 🔲 Add the `test:perf:hotel` script to `package.json`
+7. 🔲 Update coverage tables in `README.md` and the Sprint 3 roadmap in
+   `QA_PROJECT_ARCHITECTURE.md` (mark "K6: Hotel spike test" as done)
+8. 🔲 Open a PR toward `develop`
 
-## 10. Resultados de la primera ejecución real (2026-08-19)
+## 10. Results from the first real run (2026-08-19)
 
-Ejecución completa del perfil de carga definido en §2, contra `qacloud.dev`
-real, con la API key de desarrollo.
+Full execution of the load profile defined in §2, against the real
+`qacloud.dev`, using the development API key.
 
-### 10.1 Resumen
+### 10.1 Summary
 
-| Métrica | Valor real |
+| Metric | Actual value |
 |---|---|
-| Total de requests | 11.898 |
-| `checks_succeeded` | **100.00%** (11.898 / 11.898) |
+| Total requests | 11,898 |
+| `checks_succeeded` | **100.00%** (11,898 / 11,898) |
 | `http_req_failed` | **0.00%** |
-| `http_req_duration` — mediana | ~1.2-1.4s |
-| `http_req_duration` — p90 | ~7.6-7.9s |
-| `http_req_duration` — p95 | ~8.5-9.1s (según endpoint) |
+| `http_req_duration` — median | ~1.2–1.4s |
+| `http_req_duration` — p90 | ~7.6–7.9s |
+| `http_req_duration` — p95 | ~8.5–9.1s (depending on endpoint) |
 | `http_req_duration` — p99 | ~10.7s |
-| `http_req_duration` — máximo puntual | ~15.5s |
+| `http_req_duration` — peak maximum | ~15.5s |
 
-### 10.2 Hallazgos
+### 10.2 Findings
 
-1. **Resiliencia funcional excelente:** en casi 12.000 requests bajo un
-   pico de 500 VUs simultáneos, la API **nunca devolvió un error** (ni
-   4xx ni 5xx, aparte de los esperables 400 que ya resolvimos en el
-   desarrollo del script — ver §10.3). El sistema no se cae bajo presión.
-2. **Degradación de latencia significativa bajo el pico:** la mediana se
-   mantiene razonable (~1.2-1.4s) pero las colas se disparan (p95 ~9s,
-   p99 ~10.7s, máximos de hasta 15.5s). Esto es información valiosa sobre
-   la capacidad real del sistema bajo concurrencia alta.
-3. **Los 4 endpoints degradan de forma casi idéntica** (p95 entre 8.51s y
-   9.06s, una diferencia de menos de 600ms entre el más rápido y el más
-   lento). Esto sugiere que el cuello de botella **no es de una query en
-   particular**, sino de capacidad general del servidor/infraestructura
-   bajo alta concurrencia — coherente con un entorno de práctica QA, no
-   una infraestructura de producción dimensionada para 500 VUs.
-4. **Los thresholds iniciales (§5) eran demasiado optimistas** — se
-   basaban en hipótesis sin datos reales, tal y como se advirtió en su
-   momento. Se recalibraron con esta ejecución (ver `sla-config.js` para
-   los valores finales, con ~15-20% de margen sobre lo observado).
+1. **Excellent functional resilience:** across nearly 12,000 requests under
+   a spike of 500 simultaneous VUs, the API **never returned an error**
+   (neither 4xx nor 5xx, aside from the expected 400s already resolved
+   during script development — see §10.3). The system does not fall over
+   under pressure.
+2. **Significant latency degradation under the spike:** the median stays
+   reasonable (~1.2–1.4s) but the tails spike sharply (p95 ~9s, p99
+   ~10.7s, peaks up to 15.5s). This is valuable information about the
+   system's real capacity under high concurrency.
+3. **All 4 endpoints degrade almost identically** (p95 between 8.51s and
+   9.06s, a difference of less than 600ms between the fastest and the
+   slowest). This suggests the bottleneck **is not a particular query**,
+   but rather general server/infrastructure capacity under high
+   concurrency — consistent with a QA practice environment, not a
+   production infrastructure sized for 500 VUs.
+4. **The initial thresholds (§5) were too optimistic** — they were based
+   on hypotheses without real data, exactly as flagged at the time. They
+   were recalibrated with this run (see `sla-config.js` for the final
+   values, with ~15–20% margin over what was observed).
 
-### 10.3 Bugs / discrepancias encontradas durante el desarrollo
+### 10.3 Bugs / discrepancies found during development
 
-Ninguno de estos afecta al resultado final (ya corregidos en
-`hotel-spike.js`), pero quedan documentados porque son hallazgos de QA
-reales sobre la propia aplicación bajo prueba, no solo sobre el test:
+None of these affect the final result (already fixed in
+`hotel-spike.js`), but they remain documented because they are real QA
+findings about the application under test itself, not just about the test:
 
-1. **`GET /api/hotel/availability` usa `check_in_date` / `check_out_date`**,
-   no `check_in` / `check_out` como documentaba `HOTEL_APP_CONTEXT.md`
-   §6.4. Pendiente de corregir el .md (ver checklist más abajo).
-2. **`GET /api/hotel/availability` exige también `room_type_id`** como
-   parámetro requerido, pero el Swagger UI no lo lista entre los
-   parámetros del endpoint — solo se descubre en tiempo de ejecución vía
-   el mensaje de error 400: `"Property ID, room type ID, check-in date,
-   and check-out date are required"`. Es una discrepancia real entre el
-   Swagger documentado y la validación del servidor. Pendiente de anotar
-   en `HOTEL_APP_CONTEXT.md` §6.4 como corrección, igual que las
-   correcciones anteriores del documento (PATCH vs PUT, `rating` vs
+1. **`GET /api/hotel/availability` uses `check_in_date` / `check_out_date`**,
+   not `check_in` / `check_out` as `HOTEL_APP_CONTEXT.md` §6.4 previously
+   documented. The `.md` correction is pending (see checklist below).
+2. **`GET /api/hotel/availability` also requires `room_type_id`** as a
+   required parameter, but the Swagger UI does not list it among the
+   endpoint's parameters — it is only discovered at runtime via the 400
+   error message: `"Property ID, room type ID, check-in date,
+   and check-out date are required"`. This is a real discrepancy between
+   the documented Swagger spec and the server's validation. Pending
+   annotation in `HOTEL_APP_CONTEXT.md` §6.4 as a correction, same as the
+   document's previous corrections (PATCH vs PUT, `rating` vs
    `overall_rating`).

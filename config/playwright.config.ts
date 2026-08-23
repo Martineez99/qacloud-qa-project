@@ -150,5 +150,18 @@ export default defineConfig({
       },
     },
 
+    //API CRYPTO chaos tests
+    {
+      name: 'api-crypto-chaos',
+      testMatch: '**/api/crypto/**/*.spec.ts',
+      timeout: 15000,
+      use: {
+        extraHTTPHeaders: apiHeaders,
+        screenshot: 'off',
+        video: 'off',
+        trace: 'off',
+      },
+    },
+
   ],
 });

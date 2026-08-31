@@ -5,7 +5,7 @@
 #
 # Flujo serializado — misma API key para todo, no se puede paralelizar:
 #
-#   [api-tests] ──→ [e2e-full] ──→ [k6-performance] ──→ [allure-report → GitHub Pages]
+#   [api-tests] ──→ [crypto-chaos-tests] ──→ [e2e-full] ──→ [k6-performance] ──→ [k6-hotel-performance] ──→ [allure-report → GitHub Pages]
 #
 # ⚠️  El cron de performance-tests.yml ha sido eliminado para evitar
 #     que K6 se ejecute dos veces en la misma noche. El schedule
@@ -85,14 +85,71 @@ jobs:
           path: test-results/
           retention-days: 7
 
-  # ── JOB 2: Full E2E ──────────────────────────────────────────────
+  # ── JOB 2: Crypto Chaos Tests ────────────────────────────────────
+  # Necesita api-tests. Va antes de E2E porque es una suite de la misma
+  # familia (Playwright API/WS, no browser), y aísla el feed de precios
+  # compartido de Crypto del resto de la regresión (workers: 1 interno,
+  # ver CRYPTO_CHAOS_TESTING_PLAN.md §4.3).
+  # if: always() → corre igualmente aunque api-tests haya fallado.
+  crypto-chaos-tests:
+    name: Crypto Chaos Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: api-tests
+    if: always()
+
+    env:
+      QACLOUD_BASE_URL: ${{ secrets.QACLOUD_BASE_URL }}
+      QACLOUD_API_KEY:  ${{ secrets.QACLOUD_API_KEY }}
+      CI: true
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Crypto chaos suite
+        run: >
+          npx playwright test
+          --config=config/playwright.config.ts
+          --project=crypto-chaos
+
+      - name: Upload Allure results (Crypto Chaos)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results-crypto-chaos-nightly-${{ github.run_number }}
+          path: reports/allure-results/
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Upload test results on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-crypto-chaos-nightly-${{ github.run_number }}
+          path: test-results/
+          retention-days: 7
+
+  # ── JOB 3: Full E2E ──────────────────────────────────────────────
   # Necesita api-tests. El estado de datos queda conocido tras los API tests.
   # if: always() → corre aunque api-tests haya fallado para tener reporte completo.
   e2e-full:
     name: Full E2E — Chromium
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    needs: api-tests
+    needs: crypto-chaos-tests
     if: always()
 
     env:
@@ -145,7 +202,7 @@ jobs:
           path: test-results/
           retention-days: 7
 
-  # ── JOB 3: K6 Performance ────────────────────────────────────────
+  # ── JOB 4: K6 Performance ────────────────────────────────────────
   # Necesita e2e-full. K6 con 50+ VUs comparte API key con los otros jobs;
   # ejecutar en paralelo con E2E agotaría stock y generaría falsos negativos.
   # Reset explícito antes de K6: el catálogo debe estar completo para que
@@ -194,7 +251,7 @@ jobs:
           path: k6-results/
           retention-days: 30
 
-  # ── JOB 4: K6 Hotel Performance ─────────────────────────────────
+  # ── JOB 5: K6 Hotel Performance ─────────────────────────────────
   # Se ejecuta después del Market Baseline Load Test.
   # Comparte API key con el resto de la regresión, por lo que se mantiene
   # serializado para evitar interferencias entre cargas.
@@ -242,7 +299,7 @@ jobs:
           path: k6-results/
           retention-days: 30
 
-  # ── JOB 5: Allure Report combinado → GitHub Pages ────────────────
+  # ── JOB 6: Allure Report combinado → GitHub Pages ────────────────
   # Descarga resultados de API + E2E, los fusiona y despliega.
   # No depende de k6-performance: K6 no genera resultados en formato Allure.
   # Se lanza en paralelo con K6 en cuanto e2e-full termina.
@@ -250,7 +307,7 @@ jobs:
   allure-report:
     name: Publish Combined Allure Report → GitHub Pages
     runs-on: ubuntu-latest
-    needs: [api-tests, e2e-full]
+    needs: [api-tests, crypto-chaos-tests, e2e-full]
     if: always()
 
     environment:

@@ -10,6 +10,7 @@
 ![Playwright](https://img.shields.io/badge/Playwright-1.44+-45ba4b?logo=playwright&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6?logo=typescript&logoColor=white)
 ![K6](https://img.shields.io/badge/K6-Performance-7d64ff?logo=k6&logoColor=white)
+[![Chaos Tests](https://github.com/Martineez99/qacloud-qa-project/actions/workflows/chaos-tests.yml/badge.svg)](https://github.com/Martineez99/qacloud-qa-project/actions/workflows/chaos-tests.yml)
 
 ---
 
@@ -68,6 +69,13 @@ This is not a tutorial or a course exercise. It is a **real-world test automatio
 | Market baseline load | `performance/scenarios/market-load.js` | 50 VUs · 7 min | ✅ Done |
 | Hotel spike test | `performance/scenarios/hotel-spike.js` | 500 VUs spike · 3 min | ✅ Done |
 
+### Chaos Testing — Playwright + ws
+
+| Suite | File | Status |
+|-------|------|--------|
+| Crypto WebSocket chaos (latency, crash, rapid fire, price injection) | `api/crypto/websocket.spec.ts` | ✅ Done |
+| Crypto QA Control Panel — thin E2E confirmation layer | `e2e/crypto/qa-control-panel.spec.ts` | 🔲 Planned |
+
 ### CI/CD — GitHub Actions
 
 | Workflow | Trigger | Status |
@@ -77,6 +85,7 @@ This is not a tutorial or a course exercise. It is a **real-world test automatio
 | `api-tests.yml` | Push to `develop`, PR | ✅ Active |
 | `performance-tests.yml` | Push to `main`, scheduled | ✅ Active |
 | `nightly-full.yml` | Scheduled — 2 AM UTC | ✅ Active |
+| `chaos-tests.yml` | Push/PR touching `src/api/crypto/**` or `src/e2e/crypto/**`, or manual dispatch | ✅ Active |
 
 ---
 
@@ -291,7 +300,7 @@ Sprint 2 and 3 (Market, Hotel) are complete. Next phase:
 
 ```
 Sprint 4 — Advanced Patterns
-  [ ] Chaos testing (Crypto Simulator — WebSocket)
+  [x] Chaos testing (Crypto Simulator — WebSocket)
   [ ] Security test suite (auth bypass, injection)
   [ ] Visual regression testing
   [ ] RBAC tests (TaskTracker)

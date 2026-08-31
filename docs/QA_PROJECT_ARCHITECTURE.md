@@ -98,6 +98,7 @@ The **UI Sandbox** is used to build the reusable Page Object base library.
 | `allure-commandline` | `^2.x` | Report generation |
 | `dotenv` | `^16.x` | Environment variable management |
 | `faker-js` | `^8.x` | Dynamic test data generation |
+| `ws` | latest | Node WebSocket client for Crypto chaos/trading test automation |
 
 ---
 
@@ -307,6 +308,7 @@ git push origin --tags
 | `api-tests.yml` | Push to `develop`, PR | ~3–5 min |
 | `performance-tests.yml` | Push to `main`, scheduled | ~20–30 min |
 | `nightly-full.yml` | Scheduled — 2 AM UTC | ~45–60 min |
+| `chaos-tests.yml` | Push/PR to `src/api/crypto/**`, `src/e2e/crypto/**` (path-filtered) + manual dispatch | ~5–10 min (sequential; includes real latency/reconnect waits) |
 
 ### 6.2 Parallelization Strategy
 
@@ -315,6 +317,7 @@ git push origin --tags
 | E2E Tests | Sharded: shard 1/3 → market · shard 2/3 → hotel + · shard 3/3 → sandbox + tasktracker |
 | API Tests | Sequential (--workers=1): market and hotel share a single user environment/API key    |
 | K6 Tests | Sequential — performance tests must not run concurrently |
+| Crypto Chaos | Sequential (`workers: 1`), dedicated Playwright project `crypto-chaos` — shared global price feed forbids parallel execution, both within the suite and against other Crypto-touching runs |
 
 ### 6.3 Required GitHub Secrets
 
@@ -591,7 +594,7 @@ Reset:     200
 ### Sprint 4 — Advanced Patterns 🔲 Planned
 
 ```
-[ ] Chaos testing — Crypto Simulator (WebSocket)
+[✅] Chaos testing — Crypto Simulator (WebSocket)
 [ ] Security test suite (auth bypass, injection)
 [ ] Visual regression testing
 [ ] RBAC tests — TaskTracker

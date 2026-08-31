@@ -1,13 +1,29 @@
 /**
  * Crypto Simulator — Domain Types
  *
- * Reference: docs/CRYPTO_APP_CONTEXT.md §6 (API Reference)
- *            docs/CRYPTO_CHAOS_TESTING_PLAN.md §4.4 (WebSocket client helper)
+ * Reference: docs/CRYPTO_APP_CONTEXT.md §6 (API Reference) — NOTE: §6.2 was
+ *            corrected after live traffic capture; see the "Protocol
+ *            Corrections" note there and docs/CRYPTO_CHAOS_TESTING_PLAN.md.
  *
- * These types cover both the REST layer (/api/crypto/*) and the WebSocket
- * protocol (ws://<host>/ws/crypto). Unlike Market/Hotel, this app has no
- * Swagger-generated schema, so these types are derived directly from the
- * platform's own wiki documentation (docs/CRYPTO_APP_CONTEXT.md).
+ * ⚠️ PROTOCOL CORRECTION (confirmed via captured WS traffic, see
+ * src/api/crypto/crash-diagnostics.spec.ts output): the platform's own wiki
+ * documented a different WS message protocol than what the server actually
+ * sends. These types reflect the CONFIRMED real shapes, not the wiki's:
+ *
+ *   - No single "tick" message bundling all 4 coins — the server sends one
+ *     "price" message PER coin, each with its own type/pattern/injected.
+ *   - No "trade_result" message — successful trades arrive as
+ *     "order_filled", with a nested `order` + `state` object, not flat
+ *     fields, and a real order ID (`TRD-<timestamp>`).
+ *   - An undocumented "init" message arrives once, immediately after
+ *     connecting: full portfolio snapshot + per-coin metadata + 300-point
+ *     price history per coin (for charting).
+ *   - An undocumented "qa_ack" message confirms a qa_control action was
+ *     received (e.g. after toggling latency).
+ *
+ * The shape of a REJECTED order (negative amount, string amount, etc.) is
+ * still NOT confirmed — see TC-CRY-WS-007/008/009/010/011 in
+ * docs/CRYPTO_APP_CONTEXT.md §9. Do not assume it mirrors order_filled.
  */
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -27,6 +43,13 @@ export type TradeAction = 'BUY' | 'SELL';
 // REST — GET /api/crypto/prices
 // ─────────────────────────────────────────────────────────────────────────
 
+/**
+ * ⚠️ Not yet re-verified against real REST traffic (only the WS `init`
+ * message's `coins` field has been confirmed live — see CoinInitMeta
+ * below, which has more fields: startPrice, minPrice, volatility). Confirm
+ * whether the REST response matches this shape or the richer WS one when
+ * TC-CRY-API-001 is implemented.
+ */
 export interface CoinMeta {
   name: string;
   pair: string; // e.g. "BTC/USD"
@@ -51,13 +74,11 @@ export interface HoldingEntry {
 }
 
 /**
- * A single entry in `profile.orders`.
- *
- * NOTE: the platform's wiki does not document a distinct trade/order ID
- * field (see docs/CRYPTO_APP_CONTEXT.md, "Confirmation / Order ID Note").
- * `id` is marked optional here — confirm during TC-CRY-WS-003 implementation
- * whether the server actually returns one, and tighten this type once
- * confirmed.
+ * A single entry in `profile.orders` (REST) — kept distinct from the WS
+ * `order_filled.order` shape (OrderFilledMessage below) since the two are
+ * not confirmed to match field-for-field. `id` now has real evidence of
+ * its format from WS (`TRD-<timestamp>`) — confirm the REST shape carries
+ * the same field name/format when TC-CRY-API-003 is implemented.
  */
 export interface TradeRecord {
   id?: string;
@@ -66,7 +87,7 @@ export interface TradeRecord {
   amount: number;
   price: number;
   cost: number;
-  timestamp?: string;
+  timestamp?: string | number;
 }
 
 export interface ProfileResponse {
@@ -101,10 +122,6 @@ export interface InjectResponse {
 // REST — POST /api/crypto/reset
 // ─────────────────────────────────────────────────────────────────────────
 
-/**
- * Exact response body is not fully documented by the wiki beyond a 200
- * success. Confirm and tighten this type during TC-CRY-API-005 implementation.
- */
 export interface ResetResponse {
   message?: string;
   [key: string]: unknown;
@@ -114,37 +131,86 @@ export interface ResetResponse {
 // WebSocket — Server → Client messages
 // ─────────────────────────────────────────────────────────────────────────
 
-export interface TickMessage {
-  type: 'tick';
-  prices: Record<CryptoSymbol, number>;
+/**
+ * CONFIRMED live (see crash-diagnostics.spec.ts output). Sent once,
+ * immediately after connecting — full portfolio + market snapshot.
+ */
+export interface CoinInitMeta {
+  symbol: CryptoSymbol;
+  name: string;
+  pair: string;
+  startPrice: number;
+  minPrice: number;
+  volatility: number;
+  icon: string;
+}
+
+export interface PriceHistoryPoint {
+  price: number;
   timestamp: number;
 }
 
-export interface TradeResultMessage {
-  type: 'trade_result';
-  success: boolean;
-  action?: TradeAction;
-  symbol?: CryptoSymbol;
-  amount?: number;
-  price?: number;
-  cost?: number;
-  balance_usd?: number;
-  coin_balance?: number;
-  /**
-   * Populated when `success` is false. Exact shape/field name is NOT
-   * confirmed by the wiki for the negative-amount / string-amount /
-   * insufficient-funds cases (all three are documented as currently
-   * FAILING on the platform — see docs/CRYPTO_APP_CONTEXT.md §11).
-   * Keep this loose until the first real run confirms the actual shape.
-   */
-  error?: string;
+export interface InitMessage {
+  type: 'init';
+  username: string;
+  coins: Record<CryptoSymbol, CoinInitMeta>;
+  coinSymbols: CryptoSymbol[];
+  state: {
+    balance_usd: number;
+    balances: Record<CryptoSymbol, number>;
+    orders: unknown[]; // shape not yet confirmed with non-empty orders — tighten once observed
+  };
+  prices: Record<CryptoSymbol, number>;
+  /** ~300 points per coin. Large — always truncate before logging (see crash-diagnostics.spec.ts truncateForLog). */
+  history: Record<CryptoSymbol, PriceHistoryPoint[]>;
+}
+
+/**
+ * CONFIRMED live. One PER COIN, not bundled — a "tick round" is really a
+ * cluster of ~4 of these arriving with (near-)identical timestamps.
+ */
+export interface PriceTickMessage {
+  type: 'price';
+  symbol: CryptoSymbol;
+  price: number;
+  timestamp: number;
+  pattern: 'bull_flag' | 'channel_up' | 'random' | string;
+  injected: PriceDirection | null;
+}
+
+/** CONFIRMED live. Acknowledges a qa_control action was received. */
+export interface QaAckMessage {
+  type: 'qa_ack';
+  action: string;
+  value: unknown;
+}
+
+/**
+ * CONFIRMED live for a successful BUY. Real order ID format: `TRD-<epoch_ms>`.
+ * The shape for a REJECTED order is still NOT confirmed — see the file-level
+ * doc comment above.
+ */
+export interface OrderFilledMessage {
+  type: 'order_filled';
+  order: {
+    id: string;
+    symbol: CryptoSymbol;
+    action: TradeAction;
+    amount: number;
+    price: number;
+    timestamp: number;
+    cost: number;
+  };
+  state: {
+    balance_usd: number;
+    balances: Record<CryptoSymbol, number>;
+  };
 }
 
 /**
  * Catch-all for any WS message shape not yet confirmed against the live
- * server (e.g. a possible connection-level rejection instead of a
- * `trade_result` with `success: false`). Prefer widening this union as
- * real behavior is confirmed, rather than assuming a shape.
+ * server (e.g. the still-unknown rejected-order shape). Prefer widening
+ * the union above as real behavior is confirmed, rather than assuming one.
  */
 export interface UnknownServerMessage {
   type: string;
@@ -152,8 +218,10 @@ export interface UnknownServerMessage {
 }
 
 export type CryptoServerMessage =
-  | TickMessage
-  | TradeResultMessage
+  | InitMessage
+  | PriceTickMessage
+  | QaAckMessage
+  | OrderFilledMessage
   | UnknownServerMessage;
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -172,8 +240,17 @@ export interface TradeOrderMessage {
   amount: number | string;
 }
 
-/** Known QA Control Panel actions exposed over the WS channel. See docs/CRYPTO_APP_CONTEXT.md §4. */
-export type QaControlAction = 'set_latency' | string;
+/**
+ * Known QA Control Panel actions confirmed over the WS channel:
+ *   - 'set_latency' — confirmed, triggers a qa_ack, then a ~3s delay on trades.
+ *   - 'crash'       — confirmed (NOT 'simulate_crash', which is a no-op),
+ *                     closes the connection with no qa_ack.
+ * Other panel actions (malformed-amount shortcuts, rapid fire, price
+ * injection) are exercised directly via TradeOrderMessage / REST /inject
+ * rather than through this generic control channel — see
+ * docs/CRYPTO_CHAOS_TESTING_PLAN.md §3.
+ */
+export type QaControlAction = 'set_latency' | 'crash' | string;
 
 export interface QaControlMessage {
   type: 'qa_control';

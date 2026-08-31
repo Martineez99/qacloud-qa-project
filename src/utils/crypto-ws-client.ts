@@ -6,11 +6,9 @@
  * repeating boilerplate in every chaos test.
  *
  * Reference: docs/CRYPTO_CHAOS_TESTING_PLAN.md §4.4
- *            docs/CRYPTO_APP_CONTEXT.md §6.2 (WebSocket Protocol)
+ *            docs/CRYPTO_APP_CONTEXT.md §6.2 (WebSocket Protocol — corrected)
  *
- * Requires the `ws` package (not yet part of the stack — see
- * docs/CRYPTO_APP_CONTEXT.md, "Implementation Notes → New Dependency Required"):
- *
+ * Requires the `ws` package:
  *   npm install ws --save-dev
  *   npm install --save-dev @types/ws
  */
@@ -21,7 +19,7 @@ import type {
   CryptoServerMessage,
   CryptoSymbol,
   QaControlAction,
-  TickMessage,
+  PriceTickMessage,
   TradeAction,
 } from '../types/crypto.types';
 
@@ -31,7 +29,7 @@ const DEFAULT_TIMEOUT_MS = 5000;
  * Thrown when `awaitMessage` / `awaitNTicks` do not receive a matching
  * message before the timeout elapses. Kept as a distinct error type so
  * tests can assert on "no such message arrived" scenarios explicitly
- * (e.g. confirming a malformed payload produced NO trade_result at all).
+ * (e.g. confirming a malformed payload produced NO order outcome at all).
  */
 export class CryptoWsTimeoutError extends Error {
   constructor(message: string) {
@@ -41,7 +39,7 @@ export class CryptoWsTimeoutError extends Error {
 }
 
 export interface CryptoWsClientOptions {
-  /** Base WS URL, without querystring, e.g. "ws://www.qacloud.dev/ws/crypto". */
+  /** Base WS URL, without querystring, e.g. "wss://www.qacloud.dev/ws/crypto". */
   wsUrl: string;
   /** API key used for trade authentication. Omit to test unauthenticated behavior (TC-CRY-WS-002/006). */
   apiKey?: string;
@@ -70,7 +68,10 @@ export class CryptoWsClient {
 
   /**
    * Opens the WebSocket connection. Per docs/CRYPTO_APP_CONTEXT.md §6.2,
-   * the API key is passed as a query param on connect.
+   * the API key is passed as a query param on connect. The server responds
+   * with an `init` message immediately (full snapshot) before any `price`
+   * ticks — no special handling needed here, it just lands in `history`
+   * like any other message; use `awaitInit()` if a test needs it explicitly.
    */
   connect(): Promise<void> {
     const url = this.options.apiKey
@@ -107,12 +108,12 @@ export class CryptoWsClient {
     this.send({ action, symbol, amount });
   }
 
-  /** Sends a QA Control Panel action directly over the socket (e.g. `set_latency`). */
+  /** Sends a QA Control Panel action directly over the socket (e.g. `set_latency`, `crash`). */
   sendQaControl(action: QaControlAction, value: unknown): void {
     this.send({ type: 'qa_control', action, value });
   }
 
-  /** Sends an arbitrary raw payload — used for malformed-payload cases that don't fit the typed shapes (TC-CRY-WS-010/011). */
+  /** Sends an arbitrary raw payload — used for malformed-payload cases that don't fit the typed shapes (TC-CRY-WS-010/011) or protocol-discovery probes. */
   sendRaw(payload: unknown): void {
     this.requireConnection().send(JSON.stringify(payload));
   }
@@ -129,18 +130,28 @@ export class CryptoWsClient {
   }
 
   /**
-   * Resolves with the first message (already received or arriving in the
-   * future) matching `predicate`. Rejects with CryptoWsTimeoutError if none
-   * arrives within `timeoutMs`.
+   * Resolves with the first message matching `predicate`, considering only
+   * messages at index >= `sinceIndex` in `history` (default 0 — the whole
+   * log). Rejects with CryptoWsTimeoutError if none arrives within
+   * `timeoutMs`.
    *
-   * Checking messageLog first (not just future messages) avoids a race
-   * where the message arrives between `send()` and `awaitMessage()`.
+   * `sinceIndex` exists because several message types repeat (e.g. multiple
+   * `order_filled` in one connection): without it, a second `awaitMessage`
+   * call for the same predicate would immediately resolve with the FIRST,
+   * now-stale match already sitting in history instead of waiting for a
+   * new one. Pass `client.history.length` captured just before the
+   * triggering action as `sinceIndex` whenever you expect a NEW occurrence
+   * (see CryptoWsClient usage in websocket.spec.ts's measureTradeRoundTrip).
+   *
+   * Checking messageLog first (not just future messages) still avoids the
+   * OTHER race — the message arriving between `send()` and `awaitMessage()`.
    */
   awaitMessage(
     predicate: (msg: CryptoServerMessage) => boolean,
     timeoutMs = DEFAULT_TIMEOUT_MS,
+    sinceIndex = 0,
   ): Promise<CryptoServerMessage> {
-    const alreadyReceived = this.messageLog.find(predicate);
+    const alreadyReceived = this.messageLog.slice(sinceIndex).find(predicate);
     if (alreadyReceived) {
       return Promise.resolve(alreadyReceived);
     }
@@ -167,18 +178,56 @@ export class CryptoWsClient {
     });
   }
 
-  /** Convenience wrapper for the common case of awaiting the next `trade_result`. */
-  awaitTradeResult(timeoutMs = DEFAULT_TIMEOUT_MS): Promise<CryptoServerMessage> {
-    return this.awaitMessage((msg) => msg.type === 'trade_result', timeoutMs);
+  /** Awaits the one-time `init` snapshot message sent right after connecting. */
+  awaitInit(timeoutMs = DEFAULT_TIMEOUT_MS): Promise<CryptoServerMessage> {
+    return this.awaitMessage((msg) => msg.type === 'init', timeoutMs);
   }
 
   /**
-   * Collects the next `n` tick messages, counted from the moment this is
-   * called (not from connection start). Used for TC-CRY-CHAOS-008/009
-   * (price direction injection) and TC-CRY-WS-001 (tick cadence).
+   * Awaits the next order-outcome message. CONFIRMED live: a successful
+   * BUY/SELL arrives as `order_filled` (see OrderFilledMessage). The shape
+   * for a REJECTED order is NOT yet confirmed, so this matches any `type`
+   * starting with "order" as a safety net.
+   *
+   * Pass `sinceIndex` (e.g. `client.history.length` captured right before
+   * sending the order) whenever this connection may already have an
+   * earlier order outcome in its history — otherwise this will resolve
+   * instantly with that stale match. See the `awaitMessage` doc comment.
    */
-  async awaitNTicks(n: number, timeoutMs = DEFAULT_TIMEOUT_MS * n): Promise<TickMessage[]> {
-    const collected: TickMessage[] = [];
+  awaitOrderOutcome(timeoutMs = DEFAULT_TIMEOUT_MS, sinceIndex = 0): Promise<CryptoServerMessage> {
+    return this.awaitMessage(
+      (msg) => typeof msg.type === 'string' && msg.type.startsWith('order'),
+      timeoutMs,
+      sinceIndex,
+    );
+  }
+
+  /**
+   * Awaits a `qa_ack` confirming a specific qa_control action was received
+   * and applied — e.g. `awaitQaAck('set_latency')`. CONFIRMED live for
+   * 'set_latency'. NOTE: NOT sent for 'crash' — that action closes the
+   * connection directly with no ack, so callers triggering a crash should
+   * await the connection closing instead (see `wasClosed`), not this method.
+   *
+   * Accepts `sinceIndex` for the same reason as `awaitOrderOutcome` — if a
+   * test toggles the same qa_control action more than once per connection.
+   */
+  awaitQaAck(action: string, timeoutMs = DEFAULT_TIMEOUT_MS, sinceIndex = 0): Promise<CryptoServerMessage> {
+    return this.awaitMessage(
+      (msg) => msg.type === 'qa_ack' && (msg as { action?: string }).action === action,
+      timeoutMs,
+      sinceIndex,
+    );
+  }
+
+  /**
+   * Collects the next `n` PRICE tick messages (type: 'price'), counted from
+   * the moment this is called (not from connection start). Each call
+   * represents ONE coin's update, not all 4 bundled — see the file-level
+   * protocol correction note in crypto.types.ts.
+   */
+  async awaitNTicks(n: number, timeoutMs = DEFAULT_TIMEOUT_MS * n): Promise<PriceTickMessage[]> {
+    const collected: PriceTickMessage[] = [];
 
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
@@ -193,8 +242,8 @@ export class CryptoWsClient {
 
       const waiter = {
         predicate: (msg: CryptoServerMessage): boolean => {
-          if (msg.type !== 'tick') return false;
-          collected.push(msg as TickMessage);
+          if (msg.type !== 'price') return false;
+          collected.push(msg as PriceTickMessage);
           if (collected.length >= n) {
             clearTimeout(timer);
             const idx = this.waiters.indexOf(waiter);

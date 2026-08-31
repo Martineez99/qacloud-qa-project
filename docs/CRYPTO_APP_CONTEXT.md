@@ -238,35 +238,36 @@ A dedicated panel, purpose-built for chaos testing, exposing these controls:
 
 ### 6.2 WebSocket Protocol
 
+> ⚠️ **Corrected (confirmed via captured live traffic — see
+> `src/api/crypto/crash-diagnostics.spec.ts` output and the malformed
+> payload chaos suite's first run).** The wiki documents a single bundled
+> `tick` message and a flat `trade_result` response. Neither exists on the
+> real server. The table below reflects the CONFIRMED protocol.
+
 | Direction | Message Type | Shape |
 |-----------|-------------|-------|
-| Server → Client | `tick` | `{ "type": "tick", "prices": {...}, "timestamp": <epoch_ms> }` — every ~1s |
-| Client → Server | Trade order | `{ "action": "BUY"\|"SELL", "symbol": "BTC"\|"ETH"\|"SOL"\|"DOGE", "amount": <number> }` |
-| Server → Client | `trade_result` | `{ "type": "trade_result", "success": bool, "action", "symbol", "amount", "price", "cost", "balance_usd", "coin_balance" }` |
-| Client → Server | QA control (latency) | `{ "type": "qa_control", "action": "set_latency", "value": true }` |
+| Server → Client | `init` | One-time, immediately after connecting: `{ "type": "init", "username", "coins": { <symbol>: { symbol, name, pair, startPrice, minPrice, volatility, icon } }, "coinSymbols": [...], "state": { "balance_usd", "balances": {...}, "orders": [] }, "prices": {...}, "history": { <symbol>: [{ "price", "timestamp" }, ...~300 points] } }` |
+| Server → Client | `price` | **One message PER coin** (not bundled) — `{ "type": "price", "symbol", "price", "timestamp", "pattern": "bull_flag"\|"channel_up"\|"random", "injected": "up"\|"down"\|null }`, sent roughly every 500ms per coin |
+| Client → Server | Trade order | `{ "action": "BUY"\|"SELL", "symbol", "amount": <number> }` — CONFIRMED unchanged from the original doc |
+| Server → Client | `order_filled` | Confirms a successful trade — `{ "type": "order_filled", "order": { "id": "TRD-<epoch_ms>", "symbol", "action", "amount", "price", "timestamp", "cost" }, "state": { "balance_usd", "balances": {...} } }`. No `success` boolean — its presence IS success. **The shape of a rejected order (negative/string amount, insufficient funds) is still NOT confirmed** — see §11. |
+| Client → Server | QA control | `{ "type": "qa_control", "action": "set_latency"\|"crash", "value": true }` |
+| Server → Client | `qa_ack` | Confirms a qa_control action was received — `{ "type": "qa_ack", "action", "value" }`. **CONFIRMED sent for `set_latency`. NOT sent for `crash`** — that action closes the connection directly instead. |
 
-**Authentication:** pass the API key as a query param on connect — `ws://<host>/ws/crypto?api_key=YOUR_KEY` — or send it in the first message after connecting. **Without a valid key, trade orders fail but price ticks are still delivered.**
+**Authentication:** pass the API key as a query param on connect —
+`wss://<host>/ws/crypto?api_key=YOUR_KEY`. Without a valid key, price ticks
+are still delivered (confirmed); trade-order behavior without a key is
+still not directly confirmed — see TC-CRY-WS-006.
 
-### 6.3 Documented Malformed-Input Surfaces
+**QA Control Panel action names — confirmed via live probing:**
 
-These are **explicitly called out by the platform itself** as deliberate bug surfaces (not discovered by us — confirm actual behavior and document any discrepancy the same way `HOTEL_APP_CONTEXT.md` §6.4 documents its Swagger discrepancies):
+| Panel button | WS action sent | Confirmed effect |
+|---|---|---|
+| High Latency (3s delay) | `set_latency` | `qa_ack` received, then ~3s delay before the next `order_filled` |
+| 💥 Simulate Server Crash | `crash` | Connection closes immediately, no `qa_ack`. **NOT** `simulate_crash` — that value is silently ignored (no ack, no effect, ticks keep flowing normally) |
 
-| Input | Expected (per wiki) | Platform's own documented status |
-|-------|----------------------|------------------------------------|
-| `{ "amount": -500 }` | Rejected with an error response, no trade executed | **FAIL** — flagged as a known issue by the platform itself |
-| `{ "amount": "five" }` | Rejected with an error response, no trade executed | **FAIL** — flagged as a known issue |
-| Buy amount whose cost exceeds `balance_usd` | Rejected — insufficient funds error | **FAIL** — flagged as a known issue |
-
-> These three are the primary "intentional bugs" for this app, structurally equivalent to Market's stock-validation bugs and Hotel's Swagger/validation discrepancies. Confirming and documenting the *actual* server response (error body vs silent no-op vs crash) for each is the core of the negative-path WebSocket suite (§8).
-
-### 6.4 Shared Global State — Implications for CI
-
-Because the price feed is a **shared, global, continuously-running simulation** (not reset per-user, not paused between test runs), tests that assert on exact prices are inherently non-deterministic. Recommended approach, consistent with `QA_PROJECT_ARCHITECTURE.md` §6.2 ("K6 Tests: Sequential — performance tests must not run concurrently"):
-
-- Never assert on an exact price value — always assert on **price relationships** (e.g., "new balance = old balance − amount × price observed in the matching `trade_result` message").
-- Use `POST /api/crypto/inject` to force a deterministic **direction** where a test needs directional certainty (e.g., TC-CRY-CHAOS-004).
-- Treat portfolio state (`balance_usd`, `holdings`, `orders`) as the resettable, deterministic part of this app — reset that between suites, exactly as Market resets products and Hotel resets all hotel data.
-
+**Reconnection:** confirmed automatic — after a `crash`-triggered close, a
+fresh connection (same URL/api_key) reconnects successfully in ~2s and
+immediately receives a new `init` snapshot followed by `price` ticks.
 ---
 
 ## 7. Test Cases — REST API

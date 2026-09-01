@@ -14,7 +14,7 @@
     "test:perf": "k6 run src/performance/scenarios/market-load.js",
     "test:perf:hotel": "k6 run src/performance/scenarios/hotel-spike.js",
     "test:perf:stress": "k6 run src/performance/scenarios/bank-stress.js",
-    "test:chaos:crypto": "playwright test --project=crypto-chaos",
+    "test:chaos:crypto": "playwright test --project=api-crypto-chaos",
     "report:generate": "allure generate reports/allure-results -o reports/allure-report --clean",
     "report:open": "allure open reports/allure-report",
     "report:serve": "allure serve reports/allure-results",

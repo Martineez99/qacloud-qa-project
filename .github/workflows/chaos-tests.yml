@@ -30,7 +30,7 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
       - name: Run Crypto chaos suite
-        run: npx playwright test --project=crypto-chaos
+        run: npx playwright test --project=api-crypto-chaos
       - name: Upload Allure results
         if: always()
         uses: actions/upload-artifact@v4

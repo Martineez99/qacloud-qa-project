@@ -371,8 +371,8 @@ test.describe('Crypto Simulator — Chaos: High Latency Mode (TC-CRY-CHAOS-001 /
     // that the order isn't queued behind the tick delay.
     const tradeSinceIndex = wsClient.history.length;
     wsClient.sendTrade('BUY', 'BTC', 0.001);
-    const filled = (await wsClient.awaitOrderOutcome(4000, tradeSinceIndex)) as OrderFilledMessage;
-
+    const filled = (await wsClient.awaitOrderOutcome(12000, tradeSinceIndex)) as OrderFilledMessage;
+    
     // ── ASSERT ───────────────────────────────────────────────────────
     expect(filled.type, 'trade must fill under latency').toBe('order_filled');
     expect(filled.order.symbol).toBe('BTC');

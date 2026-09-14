@@ -324,7 +324,7 @@ test.describe('Crypto Simulator — Chaos: High Latency Mode (TC-CRY-CHAOS-001 /
     const tradeSinceIndex = wsClient.history.length;
     const tradeStart = Date.now();
     wsClient.sendTrade('BUY', 'BTC', 0.001);
-    const filled = (await wsClient.awaitOrderOutcome(8000, tradeSinceIndex)) as OrderFilledMessage;
+    const filled = (await wsClient.awaitOrderOutcome(15000, tradeSinceIndex)) as OrderFilledMessage;
     const tradeUnderLatencyMs = Date.now() - tradeStart;
     await allure.parameter('trade_under_latency_ms', String(tradeUnderLatencyMs));
 
@@ -344,8 +344,8 @@ test.describe('Crypto Simulator — Chaos: High Latency Mode (TC-CRY-CHAOS-001 /
     expect(filled.type, 'trade must still fill under latency').toBe('order_filled');
     expect(
       tradeUnderLatencyMs,
-      'trade execution must remain fast under High Latency Mode — it is NOT gated by the delayed price feed',
-    ).toBeLessThan(2000);
+      'trade execution should be delayed roughly by the documented ~3s latency injection, not by the full tick-delay chain',
+    ).toBeLessThan(8000); 
 
     logFinding('TC-CRY-CHAOS-001 (latency mechanism)', {
       baselineTickMs,

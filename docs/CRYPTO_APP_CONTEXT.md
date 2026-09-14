@@ -415,6 +415,7 @@ The platform's own wiki self-reports the current pass/fail status of its referen
 | String `amount` on BUY | FAIL | Confirm actual response shape; document in TC-CRY-WS-008 |
 | Buying beyond `balance_usd` | FAIL | Confirm whether balance goes negative or the trade silently succeeds; document in TC-CRY-WS-009 |
 | `inject` duration `61` capping to `60` | Untested (no test case provided) | Confirm actual behavior; document in TC-CRY-API-012 / TC-CRY-CHAOS-010 |
+| `order_filled` bajo High Latency Mode | Confirmado: SÍ se retrasa (contradice una hipótesis inicial del test TC-CRY-CHAOS-001/002) | Timeouts de `awaitOrderOutcome` ajustados a ~12-15s en CI para dar margen |
 
 > As with Hotel's `PATCH` vs `PUT` and `rating` vs `overall_rating` corrections, this section should be updated with **confirmed, first-hand findings** once the API/WS test suites are implemented — replace "Confirm..." action items with concrete ✅/⚠️ notes describing the real observed behavior.
 

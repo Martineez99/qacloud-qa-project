@@ -11,7 +11,7 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6?logo=typescript&logoColor=white)
 ![K6](https://img.shields.io/badge/K6-Performance-7d64ff?logo=k6&logoColor=white)
 [![Chaos Tests](https://github.com/Martineez99/qacloud-qa-project/actions/workflows/chaos-tests.yml/badge.svg)](https://github.com/Martineez99/qacloud-qa-project/actions/workflows/chaos-tests.yml)
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=martineez99_qacloud-qa-project&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=martineez99_qacloud-qa-project)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=Martineez99_qacloud-qa-project&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=martineez99_qacloud-qa-project)
 
 ---
 

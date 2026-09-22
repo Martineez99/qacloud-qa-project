@@ -168,3 +168,6 @@ dist/
 Thumbs.db
 # Auth state (contiene tokens sensibles)
 .auth/
+
+# SonarQube/SonarCloud
+.scannerwork/

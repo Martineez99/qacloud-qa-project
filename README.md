@@ -11,6 +11,7 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6?logo=typescript&logoColor=white)
 ![K6](https://img.shields.io/badge/K6-Performance-7d64ff?logo=k6&logoColor=white)
 [![Chaos Tests](https://github.com/Martineez99/qacloud-qa-project/actions/workflows/chaos-tests.yml/badge.svg)](https://github.com/Martineez99/qacloud-qa-project/actions/workflows/chaos-tests.yml)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=martineez99_qacloud-qa-project&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=martineez99_qacloud-qa-project)
 
 ---
 
@@ -37,6 +38,7 @@ This is not a tutorial or a course exercise. It is a **real-world test automatio
 | [Allure](https://allurereport.org) | `^3.x` | Unified test reporting |
 | GitHub Actions | — | CI/CD pipelines, scheduled runs, Pages publish |
 | Node.js | `>= 20 LTS` | Runtime |
+| [SonarCloud](https://sonarcloud.io) | — | Static code analysis, quality gate |
 
 ---
 
@@ -86,6 +88,7 @@ This is not a tutorial or a course exercise. It is a **real-world test automatio
 | `performance-tests.yml` | Push to `main`, scheduled | ✅ Active |
 | `nightly-full.yml` | Scheduled — 2 AM UTC | ✅ Active |
 | `chaos-tests.yml` | Push/PR touching `src/api/crypto/**` or `src/e2e/crypto/**`, or manual dispatch | ✅ Active |
+| `sonarqube.yml` | PR to `develop`/`main`, push to `develop`/`main` | ✅ Active |
 
 ---
 
@@ -301,6 +304,7 @@ Sprint 2 and 3 (Market, Hotel) are complete. Next phase:
 ```
 Sprint 4 — Advanced Patterns
   [x] Chaos testing (Crypto Simulator — WebSocket)
+  [x] Static analysis (SonarCloud)
   [ ] Security test suite (auth bypass, injection)
   [ ] Visual regression testing
   [ ] RBAC tests (TaskTracker)

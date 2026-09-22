@@ -99,6 +99,7 @@ The **UI Sandbox** is used to build the reusable Page Object base library.
 | `dotenv` | `^16.x` | Environment variable management |
 | `faker-js` | `^8.x` | Dynamic test data generation |
 | `ws` | latest | Node WebSocket client for Crypto chaos/trading test automation |
+| SonarCloud | — | Static code analysis, quality gate, code smell detection |
 
 ---
 
@@ -309,6 +310,7 @@ git push origin --tags
 | `performance-tests.yml` | Push to `main`, scheduled | ~20–30 min |
 | `nightly-full.yml` | Scheduled — 2 AM UTC | ~45–60 min |
 | `chaos-tests.yml` | Push/PR to `src/api/crypto/**`, `src/e2e/crypto/**` (path-filtered) + manual dispatch | ~5–10 min (sequential; includes real latency/reconnect waits) |
+| `sonarqube.yml` | PR to `develop`/`main`, push to `develop`/`main` | ~2-3 min |
 
 ### 6.2 Parallelization Strategy
 
@@ -595,6 +597,7 @@ Reset:     200
 
 ```
 [✅] Chaos testing — Crypto Simulator (WebSocket)
+[✅] Static analysis — SonarCloud integration
 [ ] Security test suite (auth bypass, injection)
 [ ] Visual regression testing
 [ ] RBAC tests — TaskTracker

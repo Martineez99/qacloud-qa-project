@@ -1,0 +1,30 @@
+# .github/workflows/sonarqube.yml
+#
+# Análisis estático de calidad de código sobre src/ (Playwright, POMs,
+# fixtures, utils, contract tests). No requiere coverage: el valor aquí
+# es duplicación, code smells, complejidad cognitiva y hotspots de
+# seguridad en el propio código de test.
+
+name: SonarCloud Analysis
+
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [main, develop]
+
+jobs:
+  sonarcloud:
+    name: SonarCloud Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # SonarCloud necesita historial completo para blame/duplicación
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarqube-scan-action@v4
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

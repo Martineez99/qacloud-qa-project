@@ -103,6 +103,26 @@ The **UI Sandbox** is used to build the reusable Page Object base library.
 
 ---
 
+### Nota sobre SonarCloud en este proyecto
+
+Este proyecto no persigue el "Quality Gate" por cobertura de tests
+unitarios (`Coverage on New Code`), ya que no aplica: la suite completa
+son tests E2E/API/contract/performance ejecutados contra el servidor
+real de qacloud.dev, no unit tests instrumentables con Istanbul/nyc.
+El valor de SonarCloud aquí es otro:
+
+- **Mantenibilidad del código de test**: complejidad cognitiva,
+  duplicación entre specs y Page Objects, nombres/tipos.
+- **Security Hotspots**: detección de credenciales o patrones
+  inseguros filtrados en el propio código de test.
+- **Deuda técnica acumulada**: seguimiento en el tiempo del
+  Maintainability Rating a medida que la suite crece.
+
+`sonar.coverage.exclusions=**/*` está configurado deliberadamente
+para que el Quality Gate fijo del plan Free (no editable sin plan
+Team/Enterprise) no falle por una condición de cobertura que no
+aplica a este tipo de proyecto.
+
 ## 3. Project Structure
 
 ```

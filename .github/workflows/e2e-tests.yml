@@ -29,6 +29,29 @@ permissions:
   id-token: write
 
 jobs:
+  # ── TypeScript validation — every PR to develop ──────────────────
+  typecheck:
+    name: TypeScript Typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: github.event_name == 'pull_request' && github.base_ref == 'develop'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check TypeScript types
+        run: npm run typecheck
+
   # ── JOB 1: Smoke Tests — PRs hacia develop ───────────────────────
   e2e-smoke:
     name: Smoke Tests — Chromium

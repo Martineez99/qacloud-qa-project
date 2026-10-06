@@ -241,13 +241,13 @@ export class MarketPage extends BasePage {
   async getCardQuantity(productName: string): Promise<number> {
     const card = this.productCardByName(productName);
     const text = await this.cardCurrentQuantity(card).textContent();
-    return parseInt(text ?? '0', 10);
+    return Number.parseInt(text ?? '0', 10);
   }
  
   /**
    * Returns true if the product card shows an "Out of Stock" disabled button.
    */
-  async isOutOfStock(productName: string): Promise<boolean> {
+  isOutOfStock(productName: string): Promise<boolean> {
     const card = this.productCardByName(productName);
     return this.outOfStockBtn(card).isVisible();
   }

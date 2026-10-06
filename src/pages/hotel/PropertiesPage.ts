@@ -190,7 +190,7 @@ export class PropertiesPage extends BasePage {
   /**
    * Devuelve el número de filas en la tabla de propiedades.
    */
-  async getPropertyCount(): Promise<number> {
+  getPropertyCount(): Promise<number> {
     return this.tableRows.count();
   }
 }

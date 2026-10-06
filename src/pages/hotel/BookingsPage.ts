@@ -281,7 +281,7 @@ export class BookingsPage extends BasePage {
   /**
    * Devuelve el número de filas en la tabla de bookings.
    */
-  async getBookingCount(): Promise<number> {
+  getBookingCount(): Promise<number> {
     return this.tableRows.count();
   }
 

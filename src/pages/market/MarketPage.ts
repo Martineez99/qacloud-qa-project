@@ -247,7 +247,7 @@ export class MarketPage extends BasePage {
   /**
    * Returns true if the product card shows an "Out of Stock" disabled button.
    */
-  async isOutOfStock(productName: string): Promise<boolean> {
+  isOutOfStock(productName: string): Promise<boolean> {
     const card = this.productCardByName(productName);
     return this.outOfStockBtn(card).isVisible();
   }

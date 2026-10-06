@@ -143,11 +143,11 @@ export class BasketPage extends BasePage {
 
   // ── Lecturas de estado ────────────────────────────────────────────────────
 
-  async isBasketEmpty(): Promise<boolean> {
+  isBasketEmpty(): Promise<boolean> {
     return this.emptyState.isVisible();
   }
 
-  async getBasketItemCount(): Promise<number> {
+  getBasketItemCount(): Promise<number> {
     return this.basketItems.count();
   }
 

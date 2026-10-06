@@ -241,7 +241,7 @@ export class MarketPage extends BasePage {
   async getCardQuantity(productName: string): Promise<number> {
     const card = this.productCardByName(productName);
     const text = await this.cardCurrentQuantity(card).textContent();
-    return parseInt(text ?? '0', 10);
+    return Number.parseInt(text ?? '0', 10);
   }
  
   /**

@@ -154,7 +154,7 @@ export class BasketPage extends BasePage {
   async getItemQuantity(productName: string): Promise<number> {
     const item = this.getBasketItemByName(productName);
     const qtyText = await item.locator('.quantity-control span').textContent();
-    return parseInt(qtyText ?? '0', 10);
+    return Number.parseInt(qtyText ?? '0', 10);
   }
 
   async getItemSubtotal(productName: string): Promise<string> {

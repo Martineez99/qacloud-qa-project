@@ -82,9 +82,9 @@ This is not a tutorial or a course exercise. It is a **real-world test automatio
 
 | Workflow | Trigger | Status |
 |----------|---------|--------|
-| `ci-pr-main.yml` | PR to `develop` / `main` | ✅ Active |
-| `e2e-tests.yml` | Push to `develop`, PR | ✅ Active |
-| `api-tests.yml` | Push to `develop`, PR | ✅ Active |
+| `ci-pr-main.yml` | PR to `main` | ✅ Active |
+| `e2e-tests.yml` | PR to `develop`: typecheck + smoke; push to `main`: full suites | ✅ Active |
+| `api-tests.yml` | PR to `develop` when API-related paths change; manual dispatch | ✅ Active |
 | `performance-tests.yml` | Push to `main`, scheduled | ✅ Active |
 | `nightly-full.yml` | Scheduled — 2 AM UTC | ✅ Active |
 | `chaos-tests.yml` | Push/PR touching `src/api/crypto/**` or `src/e2e/crypto/**`, or manual dispatch | ✅ Active |
@@ -213,6 +213,18 @@ npm run test:api
 # Verbose output
 npx playwright test src/api/ --reporter=list
 ```
+
+### Static type checking
+
+```powershell
+npm run typecheck
+```
+
+This runs TypeScript's compiler with `--noEmit`: it checks types and reports
+compile-time errors without generating build files or running Playwright tests.
+Every pull request to `develop` runs this check automatically, alongside the
+smoke tests. The API and E2E suites are separate behavioral tests and run
+according to their workflow triggers.
 
 ### Performance
 

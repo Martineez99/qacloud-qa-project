@@ -208,7 +208,7 @@ export class ReviewsPage extends BasePage {
   /**
    * Devuelve el número de reviews en la tabla.
    */
-  async getReviewCount(): Promise<number> {
+  getReviewCount(): Promise<number> {
     return this.tableRows.count();
   }
 }

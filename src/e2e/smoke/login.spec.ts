@@ -22,7 +22,7 @@ test.describe('Smoke Tests — Login & Navigation', () => {
 
     await loginPage.expectLoggedIn();
 
-    await expect(loginPage.getCurrentUrl()).resolves.toMatch(/qacloud\.dev/);
+    expect(loginPage.getCurrentUrl()).toMatch(/qacloud\.dev/);
   });
 
   test('login with invalid credentials shows error', {

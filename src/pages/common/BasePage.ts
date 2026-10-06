@@ -55,11 +55,11 @@ export class BasePage {
 
   // ── Utilidades ────────────────────────────────────────────────────────────
 
-  async getPageTitle(): Promise<string> {
+  getPageTitle(): Promise<string> {
     return this.page.title();
   }
 
-  async getCurrentUrl(): Promise<string> {
+  getCurrentUrl(): string {
     return this.page.url();
   }
 
@@ -68,17 +68,17 @@ export class BasePage {
     await locator.fill(text);
   }
 
-  async isElementPresent(locator: Locator): Promise<boolean> {
+  isElementPresent(locator: Locator): Promise<boolean> {
     return locator.isVisible();
   }
 
   // ── Tablas y listas ───────────────────────────────────────────────────────
 
-  async getTableRowCount(tableLocator: Locator): Promise<number> {
+  getTableRowCount(tableLocator: Locator): Promise<number> {
     return tableLocator.locator('tr').count();
   }
 
-  async getAllTextsFromList(listLocator: Locator): Promise<string[]> {
+  getAllTextsFromList(listLocator: Locator): Promise<string[]> {
     return listLocator.allTextContents();
   }
 

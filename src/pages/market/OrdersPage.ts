@@ -126,11 +126,11 @@ export class OrdersPage extends BasePage {
 
   // ── Lecturas de estado ────────────────────────────────────────────────────
 
-  async isOrdersEmpty(): Promise<boolean> {
+  isOrdersEmpty(): Promise<boolean> {
     return this.emptyState.isVisible();
   }
 
-  async getOrderCount(): Promise<number> {
+  getOrderCount(): Promise<number> {
     return this.orderCards.count();
   }
 

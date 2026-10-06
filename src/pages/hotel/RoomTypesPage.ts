@@ -158,7 +158,7 @@ export class RoomTypesPage extends BasePage {
   /**
    * Devuelve el número de filas en la tabla de tipos de habitación.
    */
-  async getRoomTypeCount(): Promise<number> {
+  getRoomTypeCount(): Promise<number> {
     return this.tableRows.count();
   }
 }

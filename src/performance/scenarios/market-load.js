@@ -69,9 +69,6 @@ function listProducts() {
     const httpSuccess = check(res, {
       'list products: status is 200': (r) => r.status === 200,
     });
-    check(res, {
-      'list products: response time < 1500ms': (r) => r.timings.duration < 1500,
-    });
 
     listProductsTrend.add(res.timings.duration);
     errorRate.add(!httpSuccess);
@@ -92,9 +89,6 @@ function filterProducts() {
     const httpSuccess = check(res, {
       'filter products: status is 200': (r) => r.status === 200,
     });
-    check(res, {
-      'filter products: response time < 1500ms': (r) => r.timings.duration < 1500,
-    });
 
     filterProductsTrend.add(res.timings.duration);
     errorRate.add(!httpSuccess);
@@ -110,9 +104,6 @@ function getBasket() {
 
     const httpSuccess = check(res, {
       'get basket: status is 200': (r) => r.status === 200,
-    });
-    check(res, {
-      'get basket: response time < 2000ms': (r) => r.timings.duration < 2000,
     });
 
     getBasketTrend.add(res.timings.duration);

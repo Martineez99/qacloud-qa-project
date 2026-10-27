@@ -93,6 +93,7 @@ jobs:
     env:
       QACLOUD_BASE_URL: ${{ secrets.QACLOUD_BASE_URL }}
       QACLOUD_API_KEY:  ${{ secrets.QACLOUD_API_KEY }}
+      HOTEL_MAX_VUS: 50
 
     steps:
       - name: Checkout

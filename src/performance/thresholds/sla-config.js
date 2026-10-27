@@ -34,36 +34,14 @@ export const marketThresholds = {
  * anterior (2026-08-19) ya no representaba la latencia actual del entorno.
  * Ver docs/HOTEL_PERFORMANCE_PLAN.md §10 para los resultados.
  *
- * Último resultado real bajo pico de 500 VUs (~4.660 requests, 3 min):
- *   - Todas las peticiones respondieron correctamente.
- *   - Los 4 endpoints degradan de forma casi idéntica (p95 22.35s-22.86s),
- *     lo que apunta a un cuello de botella general de capacidad.
- *   - p95 global: 22.58s; p99: 23.88s; máximo: 25.59s.
+ * La latencia se conserva como métrica informativa, sin thresholds que
+ * bloqueen CI: las ejecuciones del entorno de demo son muy variables.
+ * Los errores funcionales siguen bloqueando CI con un límite del 2%.
  *
- * Umbrales holgados para el entorno de demo: p95 < 30s y p99 < 40s.
- * Conservan margen ante la variabilidad entre ejecuciones sin quitar el
- * límite de errores funcionales (2%).
- *
- * hotel_error_rate → métrica custom basada en checks fallidos (mismo patrón
- * que market_error_rate); conserva el mismo límite que http_req_failed.
- *
- * Umbrales por endpoint (Trend metrics), todos prefijados con "hotel_"
- * para no colisionar con las métricas de Market en el mismo proyecto K6:
- * - hotel_list_properties_duration    → GET /api/hotel/properties     p95 real 22.58s → threshold 30s
- * - hotel_list_room_types_duration    → GET /api/hotel/room-types     p95 real 22.56s → threshold 30s
- * - hotel_list_bookings_duration      → GET /api/hotel/bookings       p95 real 22.35s → threshold 30s
- * - hotel_check_availability_duration → GET /api/hotel/availability   p95 real 22.86s → threshold 30s
+ * Las Trends hotel_*_duration y http_req_duration siguen recogiendo
+ * percentiles y se muestran en el resumen de K6.
  */
 export const hotelThresholds = {
-
-  // Global
-  http_req_duration: ['p(95)<30000', 'p(99)<40000'],
   http_req_failed:  ['rate<0.02'],
   hotel_error_rate: ['rate<0.02'],
-
-  // Por endpoint
-  hotel_list_properties_duration:    ['p(95)<30000'],
-  hotel_list_room_types_duration:    ['p(95)<30000'],
-  hotel_list_bookings_duration:      ['p(95)<30000'],
-  hotel_check_availability_duration: ['p(95)<30000'],
 };

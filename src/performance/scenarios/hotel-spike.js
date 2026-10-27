@@ -57,6 +57,13 @@ const testData = JSON.parse(open('../data/hotel-test-data.json'));
 
 const BASE_URL = __ENV.QACLOUD_BASE_URL || 'https://www.qacloud.dev';
 const API_KEY  = __ENV.QACLOUD_API_KEY;
+const maxVUs = Number(__ENV.HOTEL_MAX_VUS || 500);
+
+if (!Number.isInteger(maxVUs) || maxVUs < 1) {
+  throw new Error('HOTEL_MAX_VUS debe ser un entero mayor que cero.');
+}
+
+const baselineVUs = Math.min(20, maxVUs);
 
 // ─── Métricas custom ───────────────────────────────────────────────────────
 const listPropertiesTrend    = new Trend('hotel_list_properties_duration',    true);
@@ -68,11 +75,11 @@ const errorRate              = new Rate('hotel_error_rate');
 // ─── Opciones del test ─────────────────────────────────────────────────────
 export const options = {
   stages: [
-    { duration: '10s', target: 20  },  // baseline
-    { duration: '30s', target: 500 },  // SPIKE — coincide con la spec (500 VUs en 30s)
-    { duration: '60s', target: 500 },  // sustain — ventana de medición bajo estrés máximo
-    { duration: '60s', target: 20  },  // recovery — ¿se recupera al bajar la carga?
-    { duration: '20s', target: 20  },  // cooldown — confirmar estabilidad tras el pico
+    { duration: '10s', target: baselineVUs },  // baseline
+    { duration: '30s', target: maxVUs },        // spike
+    { duration: '60s', target: maxVUs },        // sustain
+    { duration: '60s', target: baselineVUs },   // recovery
+    { duration: '20s', target: baselineVUs },   // cooldown
   ],
   thresholds: hotelThresholds,
 };

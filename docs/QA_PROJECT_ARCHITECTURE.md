@@ -332,7 +332,15 @@ git push origin --tags
 | `chaos-tests.yml` | Push/PR to `src/api/crypto/**`, `src/e2e/crypto/**` (path-filtered) + manual dispatch | ~5–10 min (sequential; includes real latency/reconnect waits) |
 | `sonarqube.yml` | PR to `develop`/`main`, push to `develop`/`main` | ~2-3 min |
 
-### 6.2 Parallelization Strategy
+### 6.2 Playwright Runner Compatibility
+
+Jobs that install Chromium with `npx playwright install --with-deps chromium`
+use the `ubuntu-24.04` GitHub Actions runner. Playwright 1.59.1 does not
+support Chromium dependency installation on Ubuntu 26.04, which may be
+selected by the moving `ubuntu-latest` alias. Jobs that do not install
+Chromium keep their existing runner.
+
+### 6.3 Parallelization Strategy
 
 | Layer | Strategy |
 |-------|----------|
@@ -341,7 +349,7 @@ git push origin --tags
 | K6 Tests | Sequential — performance tests must not run concurrently |
 | Crypto Chaos | Sequential (`workers: 1`), dedicated Playwright project `crypto-chaos` — shared global price feed forbids parallel execution, both within the suite and against other Crypto-touching runs |
 
-### 6.3 Required GitHub Secrets
+### 6.4 Required GitHub Secrets
 
 Configure in **Settings → Secrets and variables → Actions**:
 

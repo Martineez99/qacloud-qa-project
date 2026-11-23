@@ -93,7 +93,7 @@ jobs:
   # if: always() → corre igualmente aunque api-tests haya fallado.
   crypto-chaos-tests:
     name: Crypto Chaos Tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     needs: api-tests
     if: always()
@@ -147,7 +147,7 @@ jobs:
   # if: always() → corre aunque api-tests haya fallado para tener reporte completo.
   e2e-full:
     name: Full E2E — Chromium
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     needs: crypto-chaos-tests
     if: always()

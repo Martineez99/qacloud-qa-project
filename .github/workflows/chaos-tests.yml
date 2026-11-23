@@ -16,7 +16,7 @@ on:
 jobs:
   crypto-chaos-tests:
     name: Crypto Chaos Tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       QACLOUD_BASE_URL: ${{ secrets.QACLOUD_BASE_URL }}
       QACLOUD_API_KEY:  ${{ secrets.QACLOUD_API_KEY }}

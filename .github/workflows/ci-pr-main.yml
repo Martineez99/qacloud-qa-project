@@ -77,7 +77,7 @@ jobs:
   # El entorno de datos queda en estado conocido tras los API tests.
   e2e-full:
     name: Full E2E — Chromium
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     needs: api-tests
     if: always()   # corre aunque api-tests haya fallado — queremos ver ambos reportes

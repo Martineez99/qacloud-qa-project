@@ -340,7 +340,14 @@ support Chromium dependency installation on Ubuntu 26.04, which may be
 selected by the moving `ubuntu-latest` alias. Jobs that do not install
 Chromium keep their existing runner.
 
-### 6.3 Parallelization Strategy
+### 6.3 K6 Package Verification
+
+The performance workflows install K6 from Grafana's Debian repository.
+They download its official signing key and convert it to a dearmored keyring
+with `gpg --dearmor` before registering the repository, so `apt` can verify
+the package index signature.
+
+### 6.4 Parallelization Strategy
 
 | Layer | Strategy |
 |-------|----------|
@@ -349,7 +356,7 @@ Chromium keep their existing runner.
 | K6 Tests | Sequential — performance tests must not run concurrently |
 | Crypto Chaos | Sequential (`workers: 1`), dedicated Playwright project `crypto-chaos` — shared global price feed forbids parallel execution, both within the suite and against other Crypto-touching runs |
 
-### 6.4 Required GitHub Secrets
+### 6.5 Required GitHub Secrets
 
 Configure in **Settings → Secrets and variables → Actions**:
 
